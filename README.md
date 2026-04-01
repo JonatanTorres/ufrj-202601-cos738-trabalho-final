@@ -22,11 +22,8 @@ o impacto dessas publicações sobre a imagem institucional da companhia.
 ## Como executar
 
 > Em construção.
-```
 
----
-
-**Estrutura de pastas**
+## Estrutura de pastas
 ```
 ├── data/
 │   ├── raw/          # dados brutos baixados
