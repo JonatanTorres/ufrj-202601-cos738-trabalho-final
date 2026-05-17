@@ -1,8 +1,13 @@
-from typing import AsyncIterator
-from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
+from typing import AsyncIterator, Protocol
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_ollama import ChatOllama
 
 from .tools import TOOLS, TOOL_MAP
+
+
+class HistoryItem(Protocol):
+    role: str
+    content: str
 
 AVAILABLE_MODELS = {
     "qwen":  "qwen3:8b",
@@ -10,15 +15,29 @@ AVAILABLE_MODELS = {
 }
 DEFAULT_MODEL = "qwen"
 
-MAIN_SYSTEM_PROMPT = """Você é um assistente útil.
-Quando o usuário fizer uma afirmação factual ou pedir para avaliar algo, use a ferramenta 'avaliador'."""
+MAIN_SYSTEM_PROMPT = """
+Você é um assistente útil que conversa em português.
+
+Use a ferramenta 'avaliador' APENAS quando o usuário fizer uma afirmação
+declarativa que pode ser verificada como verdadeira ou falsa
+(ex.: "A Terra é plana", "Vacinas causam autismo").
+
+NÃO use avaliador para:
+- Perguntas (ex.: "Qual a capital do Brasil?")
+- Pedidos de informação ou explicação
+- Conversas gerais, opiniões, criatividade
+"""
 
 
 def build_llm(model_key: str) -> ChatOllama:
     return ChatOllama(model=AVAILABLE_MODELS[model_key], think=False)
 
 
-async def run_agent_stream(message: str, model_key: str) -> AsyncIterator[tuple[str, dict]]:
+async def run_agent_stream(
+    message: str,
+    model_key: str,
+    history: list[HistoryItem] | None = None,
+) -> AsyncIterator[tuple[str, dict]]:
     """Async generator que produz eventos do agente:
     - ("token", {"text": "..."}) para cada chunk de texto da resposta
     - ("tool_call", {"name", "args", "result"}) para cada ferramenta invocada
@@ -33,10 +52,13 @@ async def run_agent_stream(message: str, model_key: str) -> AsyncIterator[tuple[
     """
     base_llm = build_llm(model_key)
     llm_with_tools = base_llm.bind_tools(TOOLS)
-    messages = [
-        SystemMessage(content=MAIN_SYSTEM_PROMPT),
-        HumanMessage(content=message),
-    ]
+    messages = [SystemMessage(content=MAIN_SYSTEM_PROMPT)]
+    for h in history or []:
+        if h.role == "user":
+            messages.append(HumanMessage(content=h.content))
+        elif h.role == "assistant":
+            messages.append(AIMessage(content=h.content))
+    messages.append(HumanMessage(content=message))
 
     # Fase 1 — decisão: tool ou texto? (não-streaming)
     decision = await llm_with_tools.ainvoke(messages)

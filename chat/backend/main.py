@@ -28,7 +28,7 @@ async def chat(req: ChatRequest):
         raise HTTPException(status_code=400, detail=f"Unknown model: {req.model}")
 
     async def event_stream():
-        async for event, data in run_agent_stream(req.message, req.model):
+        async for event, data in run_agent_stream(req.message, req.model, req.history):
             yield {"event": event, "data": json.dumps(data, ensure_ascii=False)}
 
     return EventSourceResponse(event_stream())

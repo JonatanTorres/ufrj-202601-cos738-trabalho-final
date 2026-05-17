@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { streamChat } from "./api";
+import { streamChat, type HistoryItem } from "./api";
 import { mapVerdict, type AssistantMsg, type Message, type ModelKey, type Thread, type UserMsg } from "./types";
 import { Sidebar } from "./components/Sidebar";
 import { Topbar } from "./components/Topbar";
@@ -42,6 +42,11 @@ export default function App() {
       pending: true,
     };
 
+    // Monta histórico dos turnos anteriores (só texto finalizado).
+    const history: HistoryItem[] = messages
+      .filter(m => m.role === "user" || (m.role === "assistant" && !m.pending && m.text))
+      .map(m => ({ role: m.role, content: m.text }));
+
     setMessages(ms => [...ms, userMsg, assistantMsg]);
     setPending(true);
 
@@ -60,7 +65,7 @@ export default function App() {
     }
 
     try {
-      for await (const event of streamChat(text, model)) {
+      for await (const event of streamChat(text, model, history)) {
         if (event.type === "token") {
           updateAssistant(assistantId, m => ({ ...m, text: m.text + event.data.text }));
         } else if (event.type === "tool_call") {

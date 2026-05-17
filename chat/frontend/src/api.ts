@@ -1,5 +1,10 @@
 import type { ModelKey } from "./types";
 
+export interface HistoryItem {
+  role: "user" | "assistant";
+  content: string;
+}
+
 export type SSEEvent =
   | { type: "token"; data: { text: string } }
   | { type: "tool_call"; data: { name: string; args: Record<string, unknown>; result: string } }
@@ -20,12 +25,13 @@ export async function fetchModels(): Promise<{ models: ModelKey[]; default: Mode
 export async function* streamChat(
   message: string,
   model: ModelKey,
+  history: HistoryItem[] = [],
   signal?: AbortSignal,
 ): AsyncGenerator<SSEEvent> {
   const res = await fetch(`${API_BASE}/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, model }),
+    body: JSON.stringify({ message, model, history }),
     signal,
   });
   if (!res.ok || !res.body) throw new Error(`POST /chat failed: ${res.status}`);
