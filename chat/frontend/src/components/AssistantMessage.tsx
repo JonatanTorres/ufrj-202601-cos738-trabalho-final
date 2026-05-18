@@ -1,8 +1,14 @@
-import type { AssistantMsg } from "../types";
+import type { AssistantMsg, GraphData } from "../types";
+import { GraphCard } from "./GraphCard";
 import { ToolCallChip } from "./ToolCallChip";
 import { VerdictBadge } from "./VerdictBadge";
 
-export function AssistantMessage({ msg }: { msg: AssistantMsg }) {
+interface Props {
+  msg: AssistantMsg;
+  onOpenGraph?: (graph: GraphData, query: string) => void;
+}
+
+export function AssistantMessage({ msg, onOpenGraph }: Props) {
   return (
     <div className="msg msg-assistant">
       <div className="msg-avatar mono">MG</div>
@@ -23,6 +29,10 @@ export function AssistantMessage({ msg }: { msg: AssistantMsg }) {
             {msg.text}
             {msg.pending && <span className="cursor">▍</span>}
           </div>
+        )}
+
+        {msg.graph && !msg.pending && onOpenGraph && (
+          <GraphCard data={msg.graph} onOpen={() => onOpenGraph(msg.graph!, msg.query)} />
         )}
       </div>
     </div>

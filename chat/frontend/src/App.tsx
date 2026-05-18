@@ -1,6 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { streamChat, type HistoryItem } from "./api";
-import { mapVerdict, type AssistantMsg, type Message, type ModelKey, type Thread, type UserMsg } from "./types";
+import {
+  mapVerdict,
+  parseGraphResult,
+  type AssistantMsg,
+  type GraphData,
+  type Message,
+  type ModelKey,
+  type Thread,
+  type UserMsg,
+} from "./types";
 import { Sidebar } from "./components/Sidebar";
 import { Topbar } from "./components/Topbar";
 import { Welcome } from "./components/Welcome";
@@ -8,6 +17,8 @@ import { Composer } from "./components/Composer";
 import { UserMessage } from "./components/UserMessage";
 import { AssistantMessage } from "./components/AssistantMessage";
 import { ThinkingState } from "./components/ThinkingState";
+import { GraphModal } from "./components/GraphModal";
+import type { Layout } from "./components/MGGraph";
 
 export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -16,6 +27,8 @@ export default function App() {
   const [pending, setPending] = useState(false);
   const [model, setModel] = useState<ModelKey>("qwen");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [openGraph, setOpenGraph] = useState<{ data: GraphData; query: string } | null>(null);
+  const [layout, setLayout] = useState<Layout>("force");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -39,10 +52,11 @@ export default function App() {
       text: "",
       toolCalls: [],
       verdict: null,
+      graph: null,
+      query: text,
       pending: true,
     };
 
-    // Monta histórico dos turnos anteriores (só texto finalizado).
     const history: HistoryItem[] = messages
       .filter(m => m.role === "user" || (m.role === "assistant" && !m.pending && m.text))
       .map(m => ({ role: m.role, content: m.text }));
@@ -50,7 +64,6 @@ export default function App() {
     setMessages(ms => [...ms, userMsg, assistantMsg]);
     setPending(true);
 
-    // Thread bookkeeping
     let threadId = activeThread;
     if (!threadId) {
       threadId = "t" + Date.now();
@@ -71,10 +84,12 @@ export default function App() {
         } else if (event.type === "tool_call") {
           const call = event.data;
           const verdict = call.name === "avaliador" ? mapVerdict(call.result) : null;
+          const graph = call.name === "extrator_grafo" ? parseGraphResult(call.result) : null;
           updateAssistant(assistantId, m => ({
             ...m,
             toolCalls: [...m.toolCalls, call],
             verdict: verdict || m.verdict,
+            graph: graph || m.graph,
           }));
         } else if (event.type === "done") {
           updateAssistant(assistantId, m => ({ ...m, pending: false }));
@@ -95,10 +110,9 @@ export default function App() {
   const newChat = () => {
     setMessages([]);
     setActiveThread(null);
+    setOpenGraph(null);
   };
 
-  // The assistant message at the end of `messages` is pending when SSE is in-flight
-  // but has no text yet. ThinkingState renders only if there's no text yet on a pending msg.
   const lastMsg = messages[messages.length - 1];
   const showThinking =
     pending &&
@@ -131,7 +145,11 @@ export default function App() {
                 ) : showThinking && m.id === lastMsg.id ? (
                   <ThinkingState key={m.id} />
                 ) : (
-                  <AssistantMessage key={m.id} msg={m} />
+                  <AssistantMessage
+                    key={m.id}
+                    msg={m}
+                    onOpenGraph={(data, query) => setOpenGraph({ data, query })}
+                  />
                 ),
               )}
             </div>
@@ -140,6 +158,16 @@ export default function App() {
 
         <Composer onSend={send} disabled={pending} />
       </main>
+
+      {openGraph && (
+        <GraphModal
+          data={openGraph.data}
+          query={openGraph.query}
+          layout={layout}
+          onLayout={setLayout}
+          onClose={() => setOpenGraph(null)}
+        />
+      )}
     </div>
   );
 }
