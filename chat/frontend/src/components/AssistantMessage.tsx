@@ -1,38 +1,53 @@
-import type { AssistantMsg, GraphData } from "../types";
-import { GraphCard } from "./GraphCard";
+import type { AssistantMsg, PipelineStepId } from "../types";
 import { ToolCallChip } from "./ToolCallChip";
 import { VerdictBadge } from "./VerdictBadge";
 
 interface Props {
   msg: AssistantMsg;
-  onOpenGraph?: (graph: GraphData, query: string) => void;
+  onOpenStep?: (stepId: PipelineStepId) => void;
 }
 
-export function AssistantMessage({ msg, onOpenGraph }: Props) {
+export function AssistantMessage({ msg, onOpenStep }: Props) {
+  const pipeline = msg.pipeline;
+  const verdict = pipeline?.data.stage6 || null;
+  const articleCount = pipeline?.data.stage4?.articles.length ?? 0;
+  const finalText = pipeline?.data.final_text_pt || msg.text;
+
   return (
     <div className="msg msg-assistant">
       <div className="msg-avatar mono">MG</div>
       <div className="msg-body">
         <div className="msg-eyebrow mono">
-          MEDGRAPH · {msg.pending ? "GERANDO…" : "RESPOSTA"}
-          {msg.pending && <span className="cursor-pulse" />}
+          MEDGRAPH · {verdict ? "VEREDITO" : msg.pending ? "GERANDO…" : "RESPOSTA"}
+          {msg.pending && !verdict && <span className="cursor-pulse" />}
         </div>
 
-        {msg.verdict && <VerdictBadge verdict={msg.verdict} />}
+        {verdict && (
+          <VerdictBadge label={verdict.label} tone={verdict.tone} title={verdict.title} />
+        )}
 
-        {msg.toolCalls.map((tc, i) => (
-          <ToolCallChip key={i} call={tc} />
-        ))}
+        {msg.toolCalls
+          .filter(tc => tc.name !== "pipeline_medico")
+          .map((tc, i) => (
+            <ToolCallChip key={i} call={tc} />
+          ))}
 
-        {msg.text && (
+        {finalText && (
           <div className="msg-text">
-            {msg.text}
-            {msg.pending && <span className="cursor">▍</span>}
+            {finalText}
+            {msg.pending && !verdict && <span className="cursor">▍</span>}
           </div>
         )}
 
-        {msg.graph && !msg.pending && onOpenGraph && (
-          <GraphCard data={msg.graph} onOpen={() => onOpenGraph(msg.graph!, msg.query)} />
+        {pipeline && pipeline.complete && onOpenStep && (
+          <div className="msg-actions">
+            <button className="ghost-btn mono" onClick={() => onOpenStep("verdict")}>
+              ver grafo de consenso →
+            </button>
+            <button className="ghost-btn mono" onClick={() => onOpenStep("pubmed_search")}>
+              ver artigos ({articleCount}) →
+            </button>
+          </div>
         )}
       </div>
     </div>

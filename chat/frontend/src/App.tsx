@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { streamChat, type HistoryItem } from "./api";
 import {
-  mapVerdict,
-  parseGraphResult,
+  applyPipelineEvent,
+  emptyPipelineState,
   type AssistantMsg,
-  type GraphData,
   type Message,
   type ModelKey,
+  type PipelineStepId,
   type Thread,
   type UserMsg,
 } from "./types";
@@ -17,8 +17,8 @@ import { Composer } from "./components/Composer";
 import { UserMessage } from "./components/UserMessage";
 import { AssistantMessage } from "./components/AssistantMessage";
 import { ThinkingState } from "./components/ThinkingState";
-import { GraphModal } from "./components/GraphModal";
-import type { Layout } from "./components/MGGraph";
+import { PipelineStrip } from "./components/PipelineStrip";
+import { StepModal } from "./components/StepModal";
 
 export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -27,8 +27,7 @@ export default function App() {
   const [pending, setPending] = useState(false);
   const [model, setModel] = useState<ModelKey>("qwen");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [openGraph, setOpenGraph] = useState<{ data: GraphData; query: string } | null>(null);
-  const [layout, setLayout] = useState<Layout>("force");
+  const [activeStep, setActiveStep] = useState<{ msgId: string; stepId: PipelineStepId } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -51,8 +50,7 @@ export default function App() {
       role: "assistant",
       text: "",
       toolCalls: [],
-      verdict: null,
-      graph: null,
+      pipeline: null,
       query: text,
       pending: true,
     };
@@ -83,16 +81,33 @@ export default function App() {
           updateAssistant(assistantId, m => ({ ...m, text: m.text + event.data.text }));
         } else if (event.type === "tool_call") {
           const call = event.data;
-          const verdict = call.name === "avaliador" ? mapVerdict(call.result) : null;
-          const graph = call.name === "extrator_grafo" ? parseGraphResult(call.result) : null;
           updateAssistant(assistantId, m => ({
             ...m,
             toolCalls: [...m.toolCalls, call],
-            verdict: verdict || m.verdict,
-            graph: graph || m.graph,
+            pipeline: call.name === "pipeline_medico" && !m.pipeline
+              ? emptyPipelineState(text)
+              : m.pipeline,
           }));
+        } else if (event.type === "pipeline_step") {
+          updateAssistant(assistantId, m => {
+            const prev = m.pipeline || emptyPipelineState(text);
+            return { ...m, pipeline: applyPipelineEvent(prev, event.data) };
+          });
         } else if (event.type === "done") {
-          updateAssistant(assistantId, m => ({ ...m, pending: false }));
+          updateAssistant(assistantId, m => ({
+            ...m,
+            pending: false,
+            pipeline: m.pipeline
+              ? { ...m.pipeline, complete: true, totalMs: m.pipeline.totalMs || (Date.now() - m.pipeline.startedAt) }
+              : null,
+          }));
+          // Update thread metadata with verdict
+          setThreads(ts => ts.map(t => {
+            if (t.id !== threadId) return t;
+            const stage6 = (messages.find(mm => mm.id === assistantId) as AssistantMsg | undefined)?.pipeline?.data.stage6;
+            if (!stage6) return t;
+            return { ...t, verdict: stage6.label, tone: stage6.tone };
+          }));
         }
       }
     } catch (err) {
@@ -110,7 +125,7 @@ export default function App() {
   const newChat = () => {
     setMessages([]);
     setActiveThread(null);
-    setOpenGraph(null);
+    setActiveStep(null);
   };
 
   const lastMsg = messages[messages.length - 1];
@@ -118,7 +133,17 @@ export default function App() {
     pending &&
     lastMsg?.role === "assistant" &&
     lastMsg.text === "" &&
-    lastMsg.toolCalls.length === 0;
+    lastMsg.toolCalls.length === 0 &&
+    !lastMsg.pipeline;
+
+  const activePipeline = (() => {
+    if (activeStep) {
+      const m = messages.find(mm => mm.id === activeStep.msgId);
+      if (m && m.role === "assistant" && m.pipeline) return m.pipeline;
+    }
+    const latest = [...messages].reverse().find(m => m.role === "assistant" && m.pipeline) as AssistantMsg | undefined;
+    return latest?.pipeline || null;
+  })();
 
   return (
     <div className="app">
@@ -134,6 +159,18 @@ export default function App() {
       <main className="main">
         <Topbar sessionId={activeThread} model={model} onModelChange={setModel} />
 
+        {activePipeline && (
+          <PipelineStrip
+            run={activePipeline}
+            onPick={stepId => {
+              const msg = [...messages].reverse().find(
+                mm => mm.role === "assistant" && mm.pipeline,
+              ) as AssistantMsg | undefined;
+              if (msg) setActiveStep({ msgId: msg.id, stepId });
+            }}
+          />
+        )}
+
         <div className="chat-scroll" ref={scrollRef}>
           {messages.length === 0 ? (
             <Welcome onPick={send} />
@@ -148,7 +185,7 @@ export default function App() {
                   <AssistantMessage
                     key={m.id}
                     msg={m}
-                    onOpenGraph={(data, query) => setOpenGraph({ data, query })}
+                    onOpenStep={stepId => setActiveStep({ msgId: m.id, stepId })}
                   />
                 ),
               )}
@@ -159,15 +196,26 @@ export default function App() {
         <Composer onSend={send} disabled={pending} />
       </main>
 
-      {openGraph && (
-        <GraphModal
-          data={openGraph.data}
-          query={openGraph.query}
-          layout={layout}
-          onLayout={setLayout}
-          onClose={() => setOpenGraph(null)}
-        />
-      )}
+      {activeStep && (() => {
+        const msg = messages.find(mm => mm.id === activeStep.msgId) as AssistantMsg | undefined;
+        if (!msg || !msg.pipeline) return null;
+        return (
+          <StepModal
+            stepId={activeStep.stepId}
+            run={msg.pipeline}
+            onClose={() => setActiveStep(null)}
+            onNav={delta => {
+              const order: PipelineStepId[] = [
+                "translate_pt_en", "extract_question", "mesh_search",
+                "pubmed_search", "extract_articles", "verdict", "translate_en_pt",
+              ];
+              const idx = order.indexOf(activeStep.stepId);
+              const next = order[idx + delta];
+              if (next) setActiveStep({ ...activeStep, stepId: next });
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }

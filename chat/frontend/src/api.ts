@@ -1,4 +1,4 @@
-import type { ModelKey } from "./types";
+import type { ModelKey, PipelineStepEvent } from "./types";
 
 export interface HistoryItem {
   role: "user" | "assistant";
@@ -8,6 +8,7 @@ export interface HistoryItem {
 export type SSEEvent =
   | { type: "token"; data: { text: string } }
   | { type: "tool_call"; data: { name: string; args: Record<string, unknown>; result: string } }
+  | { type: "pipeline_step"; data: PipelineStepEvent }
   | { type: "done"; data: Record<string, never> };
 
 const API_BASE = "/api";

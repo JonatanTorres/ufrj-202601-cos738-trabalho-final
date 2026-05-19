@@ -4,16 +4,12 @@ import type { EdgeType, GraphData, GraphEdge, GraphNode, NodeType } from "../typ
 export const NODE_COLORS: Record<NodeType, { bg: string; fg: string; ring: string }> = {
   drug:      { bg: "#0a0a0a", fg: "#c6ff3d", ring: "#c6ff3d" },
   condition: { bg: "#ff4d4d", fg: "#fff",    ring: "#ff4d4d" },
-  mechanism: { bg: "#fff",    fg: "#0a0a0a", ring: "#0a0a0a" },
-  biomarker: { bg: "#3d7dff", fg: "#fff",    ring: "#3d7dff" },
-  anatomy:   { bg: "#ffd400", fg: "#0a0a0a", ring: "#ffd400" },
-  study:     { bg: "#f4f4f0", fg: "#0a0a0a", ring: "#9ca3af" },
 };
 
 export const EDGE_STYLES: Record<EdgeType, { color: string; dash: string }> = {
   "induz":       { color: "#ff4d4d", dash: "" },
   "trata":       { color: "#22a06b", dash: "" },
-  "sem relação": { color: "#9ca3af", dash: "2 3" },
+  "sem_relacao": { color: "#9ca3af", dash: "2 3" },
 };
 
 export type Layout = "force" | "hierarchical" | "radial";
@@ -282,7 +278,7 @@ export function MGGraph({
           const a = nodes.find(n => n.id === e.s);
           const b = nodes.find(n => n.id === e.t);
           if (!a || !b) return null;
-          const style = EDGE_STYLES[e.type] || EDGE_STYLES["sem relação"];
+          const style = EDGE_STYLES[e.type] || EDGE_STYLES["sem_relacao"];
           const isDim = selectedId && !(e.s === selectedId || e.t === selectedId);
           const opacity = isDim ? 0.12 : 0.35 + e.conf * 0.55;
           const dx = b.x - a.x, dy = b.y - a.y;
@@ -319,7 +315,7 @@ export function MGGraph({
 
       <g>
         {nodes.map(n => {
-          const c = NODE_COLORS[n.type] || NODE_COLORS.mechanism;
+          const c = NODE_COLORS[n.type] || NODE_COLORS.drug;
           const sel = n.id === selectedId;
           const d = dim(n.id);
           return (
@@ -338,7 +334,7 @@ export function MGGraph({
                 r={n.size}
                 fill={c.bg}
                 stroke={c.ring}
-                strokeWidth={n.type === "mechanism" ? 1.5 : 0}
+                strokeWidth={0}
               />
               <text
                 textAnchor="middle"

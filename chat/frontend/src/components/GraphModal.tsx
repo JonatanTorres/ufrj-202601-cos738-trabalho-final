@@ -134,7 +134,7 @@ export function GraphModal({ data, query, layout, onLayout, onClose }: Props) {
                   {relatedEdges.map((e, i) => {
                     const other = e.s === selectedId ? e.t : e.s;
                     const otherNode = data.nodes.find(n => n.id === other);
-                    const style = EDGE_STYLES[e.type] || EDGE_STYLES["sem relação"];
+                    const style = EDGE_STYLES[e.type] || EDGE_STYLES["sem_relacao"];
                     const dir = e.s === selectedId ? "→" : "←";
                     return (
                       <div key={i} className="edge-row" onClick={() => setSelectedId(other)}>

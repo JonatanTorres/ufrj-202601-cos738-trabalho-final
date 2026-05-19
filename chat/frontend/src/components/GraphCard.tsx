@@ -20,7 +20,7 @@ export function GraphCard({ data, onOpen }: Props) {
             return <line key={i} x1={ax} y1={ay} x2={bx} y2={by} stroke="#9ca3af" strokeWidth="0.8" />;
           })}
           {previewNodes.map((n, i) => {
-            const c = NODE_COLORS[n.type] || NODE_COLORS.mechanism;
+            const c = NODE_COLORS[n.type] || NODE_COLORS.drug;
             const x = 10 + (i % 5) * 24;
             const y = 12 + ((i % 2) ? 0 : 36);
             return <circle key={i} cx={x} cy={y} r={3 + n.size / 14} fill={c.bg} stroke={c.ring} strokeWidth="1" />;
