@@ -1088,13 +1088,20 @@ button { font-family: inherit; }
 .pipeline-preview-strip {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 12px;
-  margin: 28px 0;
-  overflow-x: auto;
+  margin: 28px auto;
+  /* Quebra a largura do .pwelcome-content (880px) para caber as 7 etapas
+     sem barra de rolagem, mantendo os example cards no layout estreito. */
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(1180px, calc(100vw - 48px));
+  overflow: hidden;
 }
 .preview-step {
   display: flex;
@@ -1102,8 +1109,14 @@ button { font-family: inherit; }
   gap: 6px;
   padding: 6px 10px;
   border-right: 1px solid var(--line);
-  flex-shrink: 0;
+  flex: 1 1 0;
+  min-width: 0;
   font-size: 11px;
+  white-space: nowrap;
+}
+.preview-step .preview-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .preview-step:last-child { border-right: none; }
 .preview-num { color: var(--muted); font-size: 9px; }
