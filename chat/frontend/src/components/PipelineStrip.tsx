@@ -93,7 +93,10 @@ export function PipelineStrip({ run, onPick }: Props) {
                 )}
                 {state === "running" && (
                   <div className="pstep-progress">
-                    <div className="pstep-progress-fill" style={{ width: "50%" }} />
+                    <div
+                      className="pstep-progress-fill"
+                      style={{ width: Math.max(8, (run.progress[id] || 0) * 100) + "%" }}
+                    />
                   </div>
                 )}
               </button>

@@ -1,7 +1,11 @@
+import logging
+import time
 from typing import AsyncIterator
 
 from . import ncbi
 from .extractor import extract_graph_bilingual
+
+log = logging.getLogger("medgraph.pipeline")
 from .models import (
     AggregateStagePayload,
     FetchStagePayload,
@@ -34,19 +38,29 @@ async def run_medical_pipeline(
     segue. Quando há erro fatal (nenhum artigo, nenhuma extração), o veredito final
     desemboca em 'Sem evidência'.
     """
+    pipeline_started = time.monotonic()
+    log.info("[pipeline] START enunciado=%r model=%s", enunciado_pt, model_id)
+
     yield PipelineStepEvent(step="translate_pt_en", status="running")
+    t0 = time.monotonic()
     stage1 = await translate_pt_to_en(enunciado_pt, model_id)
+    log.info("[pipeline] step1 translate_pt_en done in %.1fs → %r",
+             time.monotonic() - t0, stage1.output)
     yield PipelineStepEvent(
         step="translate_pt_en", status="ok", payload=stage1.model_dump()
     )
 
     yield PipelineStepEvent(step="extract_question", status="running")
+    t0 = time.monotonic()
     question_graph = await extract_graph_bilingual(stage1.output, model_id)
+    log.info("[pipeline] step2 extract_question done in %.1fs → %d nodes, %d edges",
+             time.monotonic() - t0, len(question_graph.nodes), len(question_graph.edges))
     yield PipelineStepEvent(
         step="extract_question", status="ok", payload={"graph": question_graph.model_dump()},
     )
 
     yield PipelineStepEvent(step="mesh_search", status="running")
+    t0 = time.monotonic()
     lookups = []
     drug_labels: list[str] = []
     cond_labels: list[str] = []
@@ -54,11 +68,16 @@ async def run_medical_pipeline(
         term = _term_from_id(node.id)
         hit = await ncbi.mesh_search(term)
         lookups.append(hit)
+        log.info("[pipeline] step3 mesh_search %r → ok=%s mesh_id=%s label=%r (%dms)",
+                 term, hit.ok, hit.mesh_id, hit.mesh_label, hit.ms)
         if hit.ok and hit.mesh_label:
             if node.type == "drug":
                 drug_labels.append(hit.mesh_label)
             elif node.type == "condition":
                 cond_labels.append(hit.mesh_label)
+    log.info("[pipeline] step3 mesh_search done in %.1fs → %d/%d hits (drugs=%s conds=%s)",
+             time.monotonic() - t0, sum(1 for l in lookups if l.ok), len(lookups),
+             drug_labels, cond_labels)
     mesh_payload = MeshStagePayload(url_template=MESH_URL_TEMPLATE, lookups=lookups)
     yield PipelineStepEvent(
         step="mesh_search",
@@ -67,9 +86,16 @@ async def run_medical_pipeline(
     )
 
     yield PipelineStepEvent(step="pubmed_search", status="running")
+    t0 = time.monotonic()
     query = ncbi.build_pubmed_query(drug_labels, cond_labels)
+    log.info("[pipeline] step4 pubmed query=%r", query)
     pmids, total_found = await ncbi.pubmed_search(query, retmax=5) if query else ([], 0)
+    log.info("[pipeline] step4 esearch → total_found=%d pmids=%s", total_found, pmids)
     articles: list[PubmedArticle] = await ncbi.pubmed_fetch(pmids) if pmids else []
+    for art in articles:
+        log.info("[pipeline] step4 fetched PMID=%s year=%s title=%r abstract_chars=%d",
+                 art.pmid, art.year, art.title[:60], len(art.abstract))
+    log.info("[pipeline] step4 pubmed done in %.1fs → %d articles", time.monotonic() - t0, len(articles))
     fetch_payload = FetchStagePayload(
         query=query, total_found=total_found, returned=len(articles), articles=articles,
     )
@@ -79,33 +105,85 @@ async def run_medical_pipeline(
         payload=fetch_payload.model_dump(),
     )
 
-    yield PipelineStepEvent(step="extract_articles", status="running")
+    yield PipelineStepEvent(
+        step="extract_articles", status="running",
+        payload={"progress": {"current": 0, "total": len(articles), "processed_pmids": []}},
+    )
+    t0 = time.monotonic()
     article_graphs: list[tuple[str, GraphPayload]] = []
-    for art in articles:
+    for i, art in enumerate(articles, 1):
         text = f"{art.title}\n\n{art.abstract}".strip()
         if not text:
+            log.warning("[pipeline] step5 SKIP PMID=%s (texto vazio)", art.pmid)
+            article_graphs.append((art.pmid, GraphPayload()))
+        else:
+            log.info("[pipeline] step5 [%d/%d] extraindo grafo PMID=%s (%d chars de input)…",
+                     i, len(articles), art.pmid, len(text))
+            art_t0 = time.monotonic()
+            try:
+                g = await extract_graph_bilingual(text, model_id)
+            except Exception as e:
+                log.warning("[pipeline] step5 [%d/%d] PMID=%s FAILED after %.1fs: %s",
+                            i, len(articles), art.pmid, time.monotonic() - art_t0, e)
+                g = GraphPayload()
+            log.info("[pipeline] step5 [%d/%d] PMID=%s done in %.1fs → %d nodes %d edges",
+                     i, len(articles), art.pmid, time.monotonic() - art_t0,
+                     len(g.nodes), len(g.edges))
+            article_graphs.append((art.pmid, g))
+        try:
+            partial = aggregate_graphs(question_graph, article_graphs)
+        except Exception as e:
+            log.warning("[pipeline] step5 aggregate FAILED: %s", e)
             continue
-        g = await extract_graph_bilingual(text, model_id)
-        article_graphs.append((art.pmid, g))
+        processed_pmids = [pmid for pmid, _ in article_graphs]
+        yield PipelineStepEvent(
+            step="extract_articles", status="running",
+            payload={
+                **partial.model_dump(),
+                "progress": {
+                    "current": len(article_graphs),
+                    "total": len(articles),
+                    "processed_pmids": processed_pmids,
+                },
+            },
+        )
     aggregate = aggregate_graphs(question_graph, article_graphs)
+    log.info("[pipeline] step5 extract_articles done in %.1fs → %d article graphs, %d aggregate edges",
+             time.monotonic() - t0, len(article_graphs), len(aggregate.edges))
     yield PipelineStepEvent(
         step="extract_articles",
         status="ok" if article_graphs else "skipped",
-        payload=aggregate.model_dump(),
+        payload={
+            **aggregate.model_dump(),
+            "progress": {
+                "current": len(article_graphs),
+                "total": len(articles),
+                "processed_pmids": [pmid for pmid, _ in article_graphs],
+            },
+        },
     )
 
     yield PipelineStepEvent(step="verdict", status="running")
+    t0 = time.monotonic()
     verdict = compute_verdict(question_graph, aggregate, articles)
+    log.info("[pipeline] step6 verdict done in %.1fs → label=%s tone=%s (confirms=%d refutes=%d neutral=%d)",
+             time.monotonic() - t0, verdict.label, verdict.tone,
+             verdict.score.confirms, verdict.score.refutes, verdict.score.neutral)
     yield PipelineStepEvent(
         step="verdict", status="ok", payload=verdict.model_dump()
     )
 
     yield PipelineStepEvent(step="translate_en_pt", status="running")
+    t0 = time.monotonic()
     justification_en = compose_justification_en(question_graph, verdict, aggregate, articles)
     stage7 = await translate_en_to_pt(justification_en, model_id)
+    log.info("[pipeline] step7 translate_en_pt done in %.1fs → %r",
+             time.monotonic() - t0, stage7.output[:80])
     yield PipelineStepEvent(
         step="translate_en_pt", status="ok", payload=stage7.model_dump()
     )
+
+    log.info("[pipeline] DONE total=%.1fs", time.monotonic() - pipeline_started)
 
     final = PipelineResult(
         stage1=stage1,

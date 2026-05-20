@@ -1,9 +1,13 @@
 import json
+import logging
+import time
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_ollama import ChatOllama
 
 from .models import GraphEdge, GraphNode, GraphPayload
+
+log = logging.getLogger("medgraph.extractor")
 
 EXTRACTOR_PROMPT = """You are a medical entity extractor.
 
@@ -85,14 +89,19 @@ async def extract_graph_bilingual(text_en: str, model_id: str) -> GraphPayload:
         SystemMessage(content=EXTRACTOR_PROMPT),
         HumanMessage(content=text_en),
     ]
+    log.info("  → ollama.ainvoke (%s, input %d chars)…", model_id, len(text_en))
+    t0 = time.monotonic()
     try:
         response = await llm.ainvoke(messages)
-    except Exception:
+    except Exception as e:
+        log.warning("  → ollama.ainvoke FAILED after %.1fs: %s", time.monotonic() - t0, e)
         return GraphPayload()
 
     raw = (response.content or "").strip()
+    log.info("  → ollama.ainvoke done in %.1fs (output %d chars)", time.monotonic() - t0, len(raw))
     blob = _extract_json_blob(raw)
     if not blob:
+        log.warning("  → no JSON blob in response: %r", raw[:200])
         return GraphPayload()
 
     try:
@@ -100,30 +109,51 @@ async def extract_graph_bilingual(text_en: str, model_id: str) -> GraphPayload:
         chemicals = parsed.get("chemicals") or []
         diseases = parsed.get("diseases") or []
         relations = parsed.get("relations") or []
-    except (json.JSONDecodeError, KeyError, TypeError):
+    except (json.JSONDecodeError, KeyError, TypeError, AttributeError) as e:
+        log.warning("  → JSON parse failed: %s", e)
         return GraphPayload()
+
+    def _to_entity(item: object) -> tuple[str, str] | None:
+        """Aceita {id, label_pt} OU uma string (id ou label puro). Retorna (id, label)."""
+        if isinstance(item, str):
+            ident = item.strip().lower().replace("-", "_").replace(" ", "_")
+            return (ident, item.strip()) if ident else None
+        if isinstance(item, dict):
+            raw_id = item.get("id") or item.get("label_pt") or item.get("label") or ""
+            ident = str(raw_id).strip().lower().replace("-", "_").replace(" ", "_")
+            label = (item.get("label_pt") or item.get("label") or item.get("id") or "").strip()
+            if not ident:
+                return None
+            return (ident, label or ident)
+        return None
 
     nodes: list[GraphNode] = []
     seen: set[str] = set()
     for c in chemicals:
-        cid = (c.get("id") or "").strip().lower().replace("-", "_").replace(" ", "_")
-        label = (c.get("label_pt") or c.get("label") or cid).strip()
-        if not cid or cid in seen:
+        ent = _to_entity(c)
+        if not ent:
+            continue
+        cid, label = ent
+        if cid in seen:
             continue
         seen.add(cid)
         nodes.append(GraphNode(id=cid, label=label, type="drug", size=28))
     for d in diseases:
-        did = (d.get("id") or "").strip().lower().replace("-", "_").replace(" ", "_")
-        label = (d.get("label_pt") or d.get("label") or did).strip()
-        if not did or did in seen:
+        ent = _to_entity(d)
+        if not ent:
+            continue
+        did, label = ent
+        if did in seen:
             continue
         seen.add(did)
         nodes.append(GraphNode(id=did, label=label, type="condition", size=26))
 
     edges: list[GraphEdge] = []
     for r in relations:
-        s = (r.get("chemical_id") or r.get("quimico_id") or "").strip().lower().replace("-", "_").replace(" ", "_")
-        t = (r.get("disease_id") or r.get("doenca_id") or "").strip().lower().replace("-", "_").replace(" ", "_")
+        if not isinstance(r, dict):
+            continue
+        s = str(r.get("chemical_id") or r.get("quimico_id") or "").strip().lower().replace("-", "_").replace(" ", "_")
+        t = str(r.get("disease_id") or r.get("doenca_id") or "").strip().lower().replace("-", "_").replace(" ", "_")
         if not s or not t:
             continue
         if s not in seen or t not in seen:

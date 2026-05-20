@@ -45,7 +45,14 @@ export function StepModal({ stepId, run, onClose, onNav }: Props) {
   } else if (stepId === "pubmed_search" && d.stage4) {
     body = <FetchStep data={d.stage4} />;
   } else if (stepId === "extract_articles" && d.stage5 && d.stage4) {
-    body = <PerArticleStep data={d.stage5} articles={d.stage4.articles} />;
+    body = (
+      <PerArticleStep
+        data={d.stage5}
+        articles={d.stage4.articles}
+        progress={run.extractProgress}
+        isRunning={run.states.extract_articles === "running"}
+      />
+    );
   } else if (stepId === "verdict" && d.stage6 && d.stage5) {
     body = <MatchStep data={d.stage6} aggregate={d.stage5} />;
   } else if (stepId === "translate_en_pt" && d.stage7) {

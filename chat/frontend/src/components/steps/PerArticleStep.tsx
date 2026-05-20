@@ -3,15 +3,20 @@ import { MGGraph } from "../MGGraph";
 import type {
   AggregateStagePayload,
   GraphEdge,
+  PipelineProgress,
   PubmedArticle,
 } from "../../types";
 
 interface Props {
   data: AggregateStagePayload;
   articles: PubmedArticle[];
+  progress?: PipelineProgress | null;
+  isRunning?: boolean;
 }
 
-export function PerArticleStep({ data, articles }: Props) {
+export function PerArticleStep({ data, articles, progress, isRunning }: Props) {
+  const processedSet = new Set(progress?.processed_pmids || []);
+  const hasProgress = !!progress;
   const [sel, setSel] = useState<string | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 720, h: 480 });
@@ -58,29 +63,68 @@ export function PerArticleStep({ data, articles }: Props) {
   const filteredNodes = sel ? data.nodes.filter(n => usedIds.has(n.id)) : data.nodes;
   const filteredEdges = sel ? graphEdges.filter(e => usedIds.has(e.s) && usedIds.has(e.t)) : graphEdges;
 
+  const processedCount = progress?.current ?? articles.length;
+  const totalCount = progress?.total ?? articles.length;
+
   return (
     <div className="step-detail step-detail-graph">
       <div className="per-article-side">
-        <div className="step-eyebrow mono">ARTIGO ATIVO</div>
+        <div className="step-eyebrow mono">
+          ARTIGO ATIVO
+          {hasProgress && isRunning && (
+            <span style={{ float: "right", color: "var(--muted)" }}>
+              {processedCount}/{totalCount} processados
+            </span>
+          )}
+        </div>
+        {hasProgress && isRunning && (
+          <div style={{
+            height: 3, background: "var(--line)", borderRadius: 2, overflow: "hidden", marginBottom: 6,
+          }}>
+            <div style={{
+              height: "100%",
+              width: `${(processedCount / Math.max(1, totalCount)) * 100}%`,
+              background: "var(--ink)",
+              transition: "width 0.3s",
+            }} />
+          </div>
+        )}
+
         <button
           className={"per-art-row" + (sel === null ? " active" : "")}
           onClick={() => setSel(null)}
         >
-          <div className="per-art-title">⊕ Agregado dos {articles.length} artigos</div>
+          <div className="per-art-title">⊕ Agregado dos {processedCount} artigos</div>
           <div className="per-art-meta mono">{data.edges.length} arestas · todas fontes</div>
         </button>
         {articles.map(a => {
           const stat = perArt[a.pmid] || { edges: 0, supports: 0 };
+          const isProcessed = !hasProgress || processedSet.has(a.pmid);
+          const isPending = hasProgress && !isProcessed;
           return (
             <button
               key={a.pmid}
               className={"per-art-row" + (sel === a.pmid ? " active" : "")}
-              onClick={() => setSel(a.pmid)}
+              onClick={() => isProcessed && setSel(a.pmid)}
+              disabled={isPending}
+              style={isPending ? { opacity: 0.55 } : undefined}
             >
-              <div className="per-art-title">{a.title}</div>
+              <div className="per-art-title">
+                {isPending && (
+                  <span
+                    className="spinner"
+                    style={{ display: "inline-block", marginRight: 6, verticalAlign: "middle" }}
+                  />
+                )}
+                {a.title}
+              </div>
               <div className="per-art-meta mono">
                 <span className="pmid-tag mono">PMID {a.pmid}</span>
-                <span> · {stat.edges} arestas · {stat.supports} apoiam</span>
+                {isProcessed ? (
+                  <span> · {stat.edges} arestas · {stat.supports} apoiam</span>
+                ) : (
+                  <span> · processando…</span>
+                )}
               </div>
             </button>
           );

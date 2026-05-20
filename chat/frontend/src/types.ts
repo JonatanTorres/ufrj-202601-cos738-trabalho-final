@@ -156,11 +156,18 @@ export interface PipelineStepEvent {
   payload: Record<string, unknown>;
 }
 
+export interface PipelineProgress {
+  current: number;
+  total: number;
+  processed_pmids: string[];
+}
+
 export interface PipelineRunState {
   consultText: string;
   states: Record<PipelineStepId, PipelineStepStatus>;
   progress: Record<PipelineStepId, number>;
   data: Partial<PipelineResult>;
+  extractProgress: PipelineProgress | null;
   complete: boolean;
   totalMs: number;
   startedAt: number;
@@ -235,6 +242,7 @@ export function emptyPipelineState(consultText: string): PipelineRunState {
       return acc;
     }, {} as Record<PipelineStepId, number>),
     data: {},
+    extractProgress: null,
     complete: false,
     totalMs: 0,
     startedAt: Date.now(),
@@ -251,6 +259,20 @@ const STAGE_KEY: Record<Exclude<PipelineStepId, "final">, keyof PipelineResult> 
   translate_en_pt: "stage7",
 };
 
+function payloadHasGraph(p: Record<string, unknown>): boolean {
+  return Array.isArray(p.nodes) || Array.isArray(p.edges) || "graph" in p;
+}
+
+function extractProgressOf(p: Record<string, unknown>): PipelineProgress | null {
+  const pg = p.progress as Partial<PipelineProgress> | undefined;
+  if (!pg || typeof pg.current !== "number" || typeof pg.total !== "number") return null;
+  return {
+    current: pg.current,
+    total: pg.total,
+    processed_pmids: Array.isArray(pg.processed_pmids) ? pg.processed_pmids : [],
+  };
+}
+
 export function applyPipelineEvent(
   prev: PipelineRunState,
   evt: PipelineStepEvent,
@@ -266,17 +288,40 @@ export function applyPipelineEvent(
   }
   const key = STAGE_KEY[evt.step];
   const nextData: Partial<PipelineResult> = { ...prev.data };
-  if (evt.status === "ok" || evt.status === "skipped") {
+
+  const isTerminal = evt.status === "ok" || evt.status === "skipped";
+  const hasRunningData = evt.status === "running" && payloadHasGraph(evt.payload);
+
+  if (isTerminal || hasRunningData) {
     const payload =
       evt.step === "extract_question"
         ? (evt.payload as { graph: GraphData }).graph
         : evt.payload;
     (nextData as Record<string, unknown>)[key] = payload;
   }
+
+  let progressValue = prev.progress[evt.step] || 0;
+  if (isTerminal) {
+    progressValue = 1;
+  } else if (evt.status === "running") {
+    const pg = extractProgressOf(evt.payload);
+    if (pg && pg.total > 0) {
+      progressValue = pg.current / pg.total;
+    } else if (progressValue === 0) {
+      progressValue = 0.05;
+    }
+  }
+
+  const newExtractProgress =
+    evt.step === "extract_articles"
+      ? extractProgressOf(evt.payload) ?? prev.extractProgress
+      : prev.extractProgress;
+
   return {
     ...prev,
     states: { ...prev.states, [evt.step]: evt.status },
-    progress: { ...prev.progress, [evt.step]: evt.status === "running" ? 0.5 : 1 },
+    progress: { ...prev.progress, [evt.step]: progressValue },
     data: nextData,
+    extractProgress: newExtractProgress,
   };
 }

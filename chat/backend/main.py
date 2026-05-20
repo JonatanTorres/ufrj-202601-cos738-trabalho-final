@@ -1,4 +1,5 @@
 import json
+import logging
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -6,6 +7,13 @@ from sse_starlette.sse import EventSourceResponse
 
 from .agent import AVAILABLE_MODELS, DEFAULT_MODEL, run_agent_stream
 from .schemas import ChatRequest
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s.%(msecs)03d %(name)s %(levelname)s: %(message)s",
+    datefmt="%H:%M:%S",
+)
+logging.getLogger("medgraph").setLevel(logging.INFO)
 
 app = FastAPI(title="MedGraph Chat API")
 
