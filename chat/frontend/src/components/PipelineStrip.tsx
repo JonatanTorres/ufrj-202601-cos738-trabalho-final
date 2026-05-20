@@ -45,10 +45,16 @@ export function PipelineStrip({ run, onPick }: Props) {
           const state: PipelineStepStatus = run.states[id] || "idle";
           const isGraph = meta.kind === "graph";
           const interactive = state !== "idle";
+          const stateClass =
+            state === "ok" || state === "skipped" || state === "error"
+              ? "done"
+              : state === "needs_clarification"
+                ? "warn"
+                : state;
           const cls = [
             "pstep",
             "pstep-" + meta.kind,
-            "pstep-" + (state === "ok" ? "done" : state === "skipped" ? "done" : state === "error" ? "done" : state),
+            "pstep-" + stateClass,
             isGraph ? "pstep-major" : "pstep-minor",
           ].join(" ");
 
@@ -81,6 +87,15 @@ export function PipelineStrip({ run, onPick }: Props) {
                     {state === "running" && <span className="spinner" />}
                     {(state === "ok" || state === "skipped") && <span className="check">✓</span>}
                     {state === "error" && <span className="check" style={{ color: "#ff4d4d" }}>×</span>}
+                    {state === "needs_clarification" && (
+                      <span
+                        className="check"
+                        style={{ color: "#c98a00" }}
+                        title="Aguardando esclarecimento do usuário"
+                      >
+                        ?
+                      </span>
+                    )}
                     {state === "idle" && <span className="idle-dot" />}
                   </span>
                 </div>

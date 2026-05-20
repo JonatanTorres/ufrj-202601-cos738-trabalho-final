@@ -23,8 +23,10 @@ code fences:
                 "type": "<induz|trata|sem_relacao>"}]}
 
 Rules:
-- "id" MUST be lowercase, English, snake_case, no accents (e.g., "methotrexate",
-  "liver_fibrosis", "creatine", "androgenetic_alopecia").
+- "id" MUST be ASCII-only English, lowercase, snake_case, no accents, no Portuguese
+  words (e.g., "methotrexate", "liver_fibrosis", "creatine", "androgenetic_alopecia").
+  NEVER produce ids like "fibrose_hepatica", "calvicie", "metotrexato" — translate
+  to English first. If you cannot produce an English id for an entity, OMIT it.
 - "label_pt" is the Brazilian Portuguese display name (e.g., "Methotrexate",
   "Fibrose hepática", "Creatina", "Alopecia androgenética"). For drugs whose English
   name is consagrated in PT, keep the English form.
@@ -114,16 +116,25 @@ async def extract_graph_bilingual(text_en: str, model_id: str) -> GraphPayload:
         return GraphPayload()
 
     def _to_entity(item: object) -> tuple[str, str] | None:
-        """Aceita {id, label_pt} OU uma string (id ou label puro). Retorna (id, label)."""
+        """Aceita {id, label_pt} OU uma string ASCII inglesa. Retorna (id, label).
+        Descarta entidades sem id ASCII inglês — não inventa id a partir de label PT,
+        para evitar buscar termos em português no MeSH."""
         if isinstance(item, str):
             ident = item.strip().lower().replace("-", "_").replace(" ", "_")
-            return (ident, item.strip()) if ident else None
-        if isinstance(item, dict):
-            raw_id = item.get("id") or item.get("label_pt") or item.get("label") or ""
-            ident = str(raw_id).strip().lower().replace("-", "_").replace(" ", "_")
-            label = (item.get("label_pt") or item.get("label") or item.get("id") or "").strip()
-            if not ident:
+            if not ident or any(ord(c) > 127 for c in ident):
+                log.warning("  → entity descartada (string não-ASCII ou vazia): %r", item)
                 return None
+            return (ident, item.strip())
+        if isinstance(item, dict):
+            raw_id = item.get("id") or ""
+            ident = str(raw_id).strip().lower().replace("-", "_").replace(" ", "_")
+            if not ident:
+                log.warning("  → entity descartada (sem id): %r", item)
+                return None
+            if any(ord(c) > 127 for c in ident):
+                log.warning("  → entity descartada (id não-ASCII): %r", item)
+                return None
+            label = (item.get("label_pt") or item.get("label") or ident).strip()
             return (ident, label or ident)
         return None
 
@@ -163,3 +174,77 @@ async def extract_graph_bilingual(text_en: str, model_id: str) -> GraphPayload:
         edges.append(GraphEdge(s=s, t=t, type=etype, label=label, conf=0.5))
 
     return GraphPayload(nodes=nodes, edges=edges)
+
+
+SYNONYMS_PROMPT = """You generate English medical synonyms for MeSH lookup.
+
+Given a medical term in English (a DRUG/CHEMICAL or a DISEASE/CONDITION), return up
+to {max_n} alternative English names ordered from most MeSH-canonical to most
+colloquial. Include INN/generic names, brand-free synonyms, plural/singular swaps,
+and the MeSH preferred heading when you know it.
+
+Respond ONLY with a JSON object in this exact shape (no extra text, no markdown):
+{{"synonyms": ["<synonym 1>", "<synonym 2>", "<synonym 3>"]}}
+
+Rules:
+- ASCII English only. No Portuguese.
+- Do NOT repeat the input term.
+- At most {max_n} entries.
+- If you cannot think of any, return {{"synonyms": []}}.
+
+Example 1 — input kind=condition term="liver_fibrosis"
+Output: {{"synonyms": ["hepatic fibrosis", "fibrosis of the liver", "liver cirrhosis"]}}
+
+Example 2 — input kind=drug term="paracetamol"
+Output: {{"synonyms": ["acetaminophen", "N-acetyl-para-aminophenol", "APAP"]}}
+"""
+
+
+async def english_synonyms(
+    term_en: str, kind: str, model_id: str, max_n: int = 3
+) -> list[str]:
+    """Retorna até `max_n` sinônimos médicos em inglês para `term_en`.
+    `kind` é 'drug' ou 'condition'. Retorna [] em falha. Filtra não-ASCII."""
+    llm = ChatOllama(model=model_id, think=False)
+    user_text = f"kind={kind} term={term_en.replace('_', ' ')}"
+    messages = [
+        SystemMessage(content=SYNONYMS_PROMPT.format(max_n=max_n)),
+        HumanMessage(content=user_text),
+    ]
+    log.info("  → synonyms.ainvoke (%s, %r)…", model_id, user_text)
+    t0 = time.monotonic()
+    try:
+        response = await llm.ainvoke(messages)
+    except Exception as e:
+        log.warning("  → synonyms.ainvoke FAILED after %.1fs: %s", time.monotonic() - t0, e)
+        return []
+    raw = (response.content or "").strip()
+    blob = _extract_json_blob(raw)
+    if not blob:
+        log.warning("  → synonyms: no JSON blob in response: %r", raw[:200])
+        return []
+    try:
+        parsed = json.loads(blob)
+        items = parsed.get("synonyms") or []
+    except (json.JSONDecodeError, AttributeError, TypeError):
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    original_norm = term_en.replace("_", " ").strip().lower()
+    for it in items:
+        if not isinstance(it, str):
+            continue
+        s = it.strip()
+        if not s or any(ord(c) > 127 for c in s):
+            continue
+        if s.lower() == original_norm:
+            continue
+        key = s.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(s)
+        if len(out) >= max_n:
+            break
+    log.info("  → synonyms for %r → %s (%.1fs)", term_en, out, time.monotonic() - t0)
+    return out

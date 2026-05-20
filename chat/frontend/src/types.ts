@@ -50,7 +50,13 @@ export type PipelineStepId =
   | "translate_en_pt"
   | "final";
 
-export type PipelineStepStatus = "idle" | "running" | "ok" | "error" | "skipped";
+export type PipelineStepStatus =
+  | "idle"
+  | "running"
+  | "ok"
+  | "error"
+  | "skipped"
+  | "needs_clarification";
 
 export interface TranslateStagePayload {
   input: string;
@@ -71,11 +77,21 @@ export interface MeshLookup {
   count: number;
   ok: boolean;
   ms: number;
+  attempts: string[];
+  matched_term: string | null;
+}
+
+export interface UnresolvedTerm {
+  id: string;
+  label: string;
+  type: NodeType;
+  attempts: string[];
 }
 
 export interface MeshStagePayload {
   url_template: string;
   lookups: MeshLookup[];
+  unresolved: UnresolvedTerm[];
 }
 
 export interface PubmedArticle {
@@ -289,7 +305,10 @@ export function applyPipelineEvent(
   const key = STAGE_KEY[evt.step];
   const nextData: Partial<PipelineResult> = { ...prev.data };
 
-  const isTerminal = evt.status === "ok" || evt.status === "skipped";
+  const isTerminal =
+    evt.status === "ok" ||
+    evt.status === "skipped" ||
+    evt.status === "needs_clarification";
   const hasRunningData = evt.status === "running" && payloadHasGraph(evt.payload);
 
   if (isTerminal || hasRunningData) {

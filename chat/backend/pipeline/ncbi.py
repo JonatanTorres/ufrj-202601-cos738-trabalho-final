@@ -116,6 +116,33 @@ async def mesh_search(term: str) -> MeshLookup:
         )
 
 
+async def mesh_search_with_retry(primary: str, synonyms: list[str]) -> MeshLookup:
+    """Tenta `primary` no MeSH; se falhar, itera os `synonyms` (até esgotar).
+    Retorna um MeshLookup cujo `term` é o `primary` (para rastreabilidade),
+    `attempts` lista todos os termos tentados na ordem, e `matched_term` indica
+    qual realmente bateu (None se nenhum)."""
+    attempts: list[str] = [primary]
+    hit = await mesh_search(primary)
+    if hit.ok:
+        hit.attempts = attempts
+        hit.matched_term = primary
+        return hit
+    last = hit
+    for syn in synonyms:
+        attempts.append(syn)
+        candidate = await mesh_search(syn)
+        if candidate.ok:
+            candidate.term = primary
+            candidate.attempts = attempts
+            candidate.matched_term = syn
+            return candidate
+        last = candidate
+    last.term = primary
+    last.attempts = attempts
+    last.matched_term = None
+    return last
+
+
 def build_pubmed_query(drug_labels: list[str], cond_labels: list[str]) -> str:
     """("Drug1"[MeSH] OR "Drug2"[MeSH]) AND ("Cond1"[MeSH] OR "Cond2"[MeSH]).
 

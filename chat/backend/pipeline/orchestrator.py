@@ -3,7 +3,7 @@ import time
 from typing import AsyncIterator
 
 from . import ncbi
-from .extractor import extract_graph_bilingual
+from .extractor import english_synonyms, extract_graph_bilingual
 
 log = logging.getLogger("medgraph.pipeline")
 from .models import (
@@ -15,6 +15,7 @@ from .models import (
     PipelineStepEvent,
     PubmedArticle,
     TranslateStagePayload,
+    UnresolvedTerm,
     VerdictScore,
     VerdictStagePayload,
 )
@@ -64,21 +65,48 @@ async def run_medical_pipeline(
     lookups = []
     drug_labels: list[str] = []
     cond_labels: list[str] = []
+    unresolved: list[UnresolvedTerm] = []
     for node in question_graph.nodes:
         term = _term_from_id(node.id)
         hit = await ncbi.mesh_search(term)
+        if not hit.ok:
+            syns = await english_synonyms(node.id, node.type, model_id, max_n=3)
+            if syns:
+                log.info("[pipeline] step3 retry %r with synonyms=%s", term, syns)
+                hit = await ncbi.mesh_search_with_retry(term, syns)
+            else:
+                hit.attempts = [term]
+                hit.matched_term = None
+        else:
+            hit.attempts = [term]
+            hit.matched_term = term
         lookups.append(hit)
-        log.info("[pipeline] step3 mesh_search %r → ok=%s mesh_id=%s label=%r (%dms)",
-                 term, hit.ok, hit.mesh_id, hit.mesh_label, hit.ms)
+        log.info("[pipeline] step3 mesh_search %r → ok=%s mesh_id=%s label=%r matched=%r attempts=%s (%dms)",
+                 term, hit.ok, hit.mesh_id, hit.mesh_label, hit.matched_term, hit.attempts, hit.ms)
         if hit.ok and hit.mesh_label:
             if node.type == "drug":
                 drug_labels.append(hit.mesh_label)
             elif node.type == "condition":
                 cond_labels.append(hit.mesh_label)
-    log.info("[pipeline] step3 mesh_search done in %.1fs → %d/%d hits (drugs=%s conds=%s)",
+        else:
+            unresolved.append(UnresolvedTerm(
+                id=node.id, label=node.label, type=node.type, attempts=hit.attempts or [term],
+            ))
+    log.info("[pipeline] step3 mesh_search done in %.1fs → %d/%d hits (drugs=%s conds=%s unresolved=%d)",
              time.monotonic() - t0, sum(1 for l in lookups if l.ok), len(lookups),
-             drug_labels, cond_labels)
-    mesh_payload = MeshStagePayload(url_template=MESH_URL_TEMPLATE, lookups=lookups)
+             drug_labels, cond_labels, len(unresolved))
+    mesh_payload = MeshStagePayload(
+        url_template=MESH_URL_TEMPLATE, lookups=lookups, unresolved=unresolved,
+    )
+    if unresolved:
+        log.info("[pipeline] step3 needs_clarification: %s",
+                 [(u.id, u.label) for u in unresolved])
+        yield PipelineStepEvent(
+            step="mesh_search",
+            status="needs_clarification",
+            payload=mesh_payload.model_dump(),
+        )
+        return
     yield PipelineStepEvent(
         step="mesh_search",
         status="ok" if lookups else "skipped",

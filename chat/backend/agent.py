@@ -47,6 +47,34 @@ def build_llm(model_key: str) -> ChatOllama:
     return ChatOllama(model=AVAILABLE_MODELS[model_key], think=False)
 
 
+def _build_clarification_message(enunciado: str, unresolved: list[dict]) -> str:
+    if not unresolved:
+        return (
+            "Não consegui mapear todos os termos médicos da sua pergunta no MeSH. "
+            "Pode reformular usando termos médicos mais específicos (em inglês, se possível)?"
+        )
+    lines = [
+        "Não consegui localizar os seguintes termos da sua pergunta no vocabulário MeSH:",
+        "",
+    ]
+    for u in unresolved:
+        label = u.get("label") or u.get("id") or "?"
+        attempts = u.get("attempts") or []
+        if attempts:
+            lines.append(f"- **{label}** (tentei: {', '.join(attempts)})")
+        else:
+            lines.append(f"- **{label}**")
+    lines.extend([
+        "",
+        f"Sua pergunta foi: _{enunciado}_",
+        "",
+        "Você poderia reformular usando o termo médico equivalente em inglês "
+        "ou um sinônimo mais específico? Em seguida vou rodar a busca novamente "
+        "desde o início.",
+    ])
+    return "\n".join(lines)
+
+
 async def run_agent_stream(
     message: str,
     model_key: str,
@@ -76,10 +104,22 @@ async def run_agent_stream(
         if tc["name"] == "pipeline_medico":
             enunciado = tc["args"].get("enunciado") or message
             final_result: dict | None = None
+            clarification_msg: str | None = None
             async for evt in run_medical_pipeline(enunciado, model_id):
                 yield ("pipeline_step", evt.model_dump())
                 if evt.step == "final" and evt.status == "ok":
                     final_result = evt.payload
+                if (
+                    evt.step == "mesh_search"
+                    and evt.status == "needs_clarification"
+                ):
+                    clarification_msg = _build_clarification_message(
+                        enunciado, evt.payload.get("unresolved") or []
+                    )
+            if clarification_msg is not None:
+                yield ("token", {"text": clarification_msg})
+                yield ("done", {})
+                return
             tool_content = json.dumps(final_result or {}, ensure_ascii=False)
             messages.append(ToolMessage(content=tool_content, tool_call_id=tc["id"]))
         else:

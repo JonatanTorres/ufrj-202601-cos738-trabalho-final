@@ -14,7 +14,7 @@ StepName = Literal[
     "final",
 ]
 
-StepStatus = Literal["running", "ok", "error", "skipped"]
+StepStatus = Literal["running", "ok", "error", "skipped", "needs_clarification"]
 
 NodeType = Literal["drug", "condition"]
 EdgeType = Literal["induz", "trata", "sem_relacao"]
@@ -62,11 +62,21 @@ class MeshLookup(BaseModel):
     count: int = 0
     ok: bool = True
     ms: int = 0
+    attempts: list[str] = Field(default_factory=list)
+    matched_term: Optional[str] = None
+
+
+class UnresolvedTerm(BaseModel):
+    id: str
+    label: str
+    type: NodeType
+    attempts: list[str] = Field(default_factory=list)
 
 
 class MeshStagePayload(BaseModel):
     url_template: str = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=mesh&term={TERM}&retmode=json"
     lookups: list[MeshLookup] = Field(default_factory=list)
+    unresolved: list[UnresolvedTerm] = Field(default_factory=list)
 
 
 class PubmedArticle(BaseModel):
