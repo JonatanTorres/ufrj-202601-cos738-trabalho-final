@@ -1086,45 +1086,73 @@ button { font-family: inherit; }
 }
 
 .pipeline-preview-strip {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  align-items: start;
   gap: 0;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 10px;
-  padding: 12px;
-  margin: 28px auto;
-  /* Quebra a largura do .pwelcome-content (880px) para caber as 7 etapas
-     sem barra de rolagem, mantendo os example cards no layout estreito. */
-  position: relative;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(1180px, calc(100vw - 48px));
-  overflow: hidden;
+  padding: 16px 12px 14px;
+  margin: 28px 0;
+}
+.pipeline-preview-strip::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: calc((100% / 7) / 2 + 12px);
+  right: calc((100% / 7) / 2 + 12px);
+  height: 1px;
+  margin-top: 48px;
+  transform: translateY(-0.5px);
+  background: repeating-linear-gradient(
+    to right,
+    var(--line) 0 4px,
+    transparent 4px 7px
+  );
+  pointer-events: none;
 }
 .preview-step {
-  display: flex;
-  align-items: center;
+  position: relative;
+  display: grid;
+  grid-template-rows: auto auto auto;
+  justify-items: center;
   gap: 6px;
-  padding: 6px 10px;
-  border-right: 1px solid var(--line);
-  flex: 1 1 0;
-  min-width: 0;
+  padding: 0 6px;
+  text-align: center;
   font-size: 11px;
-  white-space: nowrap;
+  line-height: 1.3;
+  min-width: 0;
 }
-.preview-step .preview-title {
+.preview-num {
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+}
+.preview-icon {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--bg, #fff);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+}
+.preview-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-2);
 }
-.preview-step:last-child { border-right: none; }
-.preview-num { color: var(--muted); font-size: 9px; }
-.preview-step-graph .preview-title { font-weight: 600; }
-.preview-step-graph .preview-icon { color: var(--ink); }
-.preview-step-agent { color: var(--ink-2); }
-.preview-step-tool { color: var(--ink-2); }
-.preview-icon { display: inline-flex; }
 
 /* ─── Verdict (response) ─────────────────────────────────────────── */
 .verdict-tone-ok   { background: #e7fbe7; color: #0a6b25; }

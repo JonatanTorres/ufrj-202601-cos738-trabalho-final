@@ -15,14 +15,14 @@ export function Welcome({ onPick }: Props) {
   return (
     <div className="pwelcome">
       <div className="pwelcome-content">
-        <div className="eyebrow mono">MEDGRAPH PIPELINE · v0.1 · 7 etapas</div>
+        <div className="eyebrow mono">MEDGRAPH PIPELINE · v0.5 · 7 etapas</div>
         <h1>
           Pergunte. <br />
           <span className="hl">Veja o raciocínio.</span>
         </h1>
         <p className="subtitle">
           Cada consulta passa por um pipeline de 7 etapas — tradução, extração
-          de grafo, lookup MeSH, busca PubMed, extração por artigo e veredito
+          de grafo, lookup MeSH, busca PubMed, análise por artigo e veredito
           por consenso. Cada etapa é inspecionável.
         </p>
 
