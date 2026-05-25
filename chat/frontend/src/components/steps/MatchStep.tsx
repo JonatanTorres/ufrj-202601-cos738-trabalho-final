@@ -13,9 +13,9 @@ interface Props {
 }
 
 const CONSENSUS_TO_EDGE_TYPE: Record<string, EdgeType> = {
-  confirm: "trata",
-  refute: "induz",
-  neutral: "sem_relacao",
+  confirm: "treats",
+  refute: "induces",
+  neutral: "no_relation",
 };
 
 export function MatchStep({ data, aggregate }: Props) {
@@ -36,7 +36,7 @@ export function MatchStep({ data, aggregate }: Props) {
   const consensusEdges: GraphEdge[] = data.edges_consensus.map(c => ({
     s: c.s,
     t: c.t,
-    type: CONSENSUS_TO_EDGE_TYPE[c.consensus] || "sem_relacao",
+    type: CONSENSUS_TO_EDGE_TYPE[c.consensus] || "no_relation",
     conf: c.consensus === "neutral" ? 0.3 : 0.9,
     label: c.note || c.consensus,
   }));

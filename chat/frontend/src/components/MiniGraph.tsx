@@ -64,7 +64,7 @@ export function MiniGraph({ data, kind = "default", consensusNodes }: Props) {
   let edges: RenderEdge[] = [];
   if (src.kind === "graph") {
     edges = src.data.edges.slice(0, 12).map(e => ({
-      s: e.s, t: e.t, color: e.type === "induz" ? "#ff4d4d" : e.type === "trata" ? "#22a06b" : "#9ca3af",
+      s: e.s, t: e.t, color: e.type === "induces" ? "#ff4d4d" : e.type === "treats" ? "#22a06b" : "#9ca3af",
     }));
   } else if (src.kind === "aggregate") {
     edges = src.data.edges.slice(0, 12).map(e => ({

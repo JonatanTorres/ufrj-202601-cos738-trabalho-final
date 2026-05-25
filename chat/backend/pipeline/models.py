@@ -17,7 +17,7 @@ StepName = Literal[
 StepStatus = Literal["running", "ok", "error", "skipped", "needs_clarification"]
 
 NodeType = Literal["drug", "condition"]
-EdgeType = Literal["induz", "trata", "sem_relacao"]
+EdgeType = Literal["induces", "treats", "no_relation"]
 ConsensusType = Literal["confirm", "refute", "neutral"]
 VerdictLabel = Literal["Confirmado", "Refutado", "Indefinido", "Sem evidência", "Contraditório"]
 VerdictTone = Literal["ok", "bad", "info", "warn"]

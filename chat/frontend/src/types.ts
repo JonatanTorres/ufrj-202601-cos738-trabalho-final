@@ -9,7 +9,7 @@ export type VerdictLabel =
   | "Contraditório";
 
 export type NodeType = "drug" | "condition";
-export type EdgeType = "induz" | "trata" | "sem_relacao";
+export type EdgeType = "induces" | "treats" | "no_relation";
 export type ConsensusType = "confirm" | "refute" | "neutral";
 
 export interface GraphNode {

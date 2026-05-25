@@ -184,7 +184,7 @@ def compose_justification_en(
         cond = next((n for n in aggregate.nodes if n.id == qe.t), None)
         chem_label = chem.label if chem else qe.s
         cond_label = cond.label if cond else qe.t
-        verb = {"induz": "induces", "trata": "treats", "sem_relacao": "is unrelated to"}[qe.type]
+        verb = {"induces": "induces", "treats": "treats", "no_relation": "is unrelated to"}[qe.type]
         if supports >= 3 and supports > refutes:
             lines.append(f"- {supports}/{n_articles} articles confirm that {chem_label} {verb} {cond_label}.")
         elif refutes >= 3 and refutes > supports:

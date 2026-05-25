@@ -1,7 +1,15 @@
 from langchain_core.tools import tool
+from pydantic import BaseModel, Field
 
 
-@tool
+class PipelineMedicoArgs(BaseModel):
+    enunciado: str = Field(
+        description="Pergunta ou afirmação do usuário em PT-BR envolvendo "
+                    "um químico/medicamento/suplemento e uma doença/condição/sintoma."
+    )
+
+
+@tool(args_schema=PipelineMedicoArgs)
 def pipeline_medico(enunciado: str) -> str:
     """Pipeline médico completo. Use SEMPRE que o usuário fizer uma afirmação ou
     pergunta envolvendo um químico/medicamento/suplemento e uma doença/condição/sintoma.

@@ -44,7 +44,7 @@ NÃO use pipeline_medico para:
 
 
 def build_llm(model_key: str) -> ChatOllama:
-    return ChatOllama(model=AVAILABLE_MODELS[model_key], think=False)
+    return ChatOllama(model=AVAILABLE_MODELS[model_key], reasoning=False)
 
 
 def _build_clarification_message(enunciado: str, unresolved: list[dict]) -> str:

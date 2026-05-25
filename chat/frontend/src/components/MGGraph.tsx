@@ -7,9 +7,9 @@ export const NODE_COLORS: Record<NodeType, { bg: string; fg: string; ring: strin
 };
 
 export const EDGE_STYLES: Record<EdgeType, { color: string; dash: string }> = {
-  "induz":       { color: "#ff4d4d", dash: "" },
-  "trata":       { color: "#22a06b", dash: "" },
-  "sem_relacao": { color: "#9ca3af", dash: "2 3" },
+  "induces":     { color: "#ff4d4d", dash: "" },
+  "treats":      { color: "#22a06b", dash: "" },
+  "no_relation": { color: "#9ca3af", dash: "2 3" },
 };
 
 export type Layout = "force" | "hierarchical" | "radial";
@@ -278,7 +278,7 @@ export function MGGraph({
           const a = nodes.find(n => n.id === e.s);
           const b = nodes.find(n => n.id === e.t);
           if (!a || !b) return null;
-          const style = EDGE_STYLES[e.type] || EDGE_STYLES["sem_relacao"];
+          const style = EDGE_STYLES[e.type] || EDGE_STYLES["no_relation"];
           const isDim = selectedId && !(e.s === selectedId || e.t === selectedId);
           const opacity = isDim ? 0.12 : 0.35 + e.conf * 0.55;
           const dx = b.x - a.x, dy = b.y - a.y;
