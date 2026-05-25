@@ -58,11 +58,17 @@ export type PipelineStepStatus =
   | "skipped"
   | "needs_clarification";
 
+export interface GlossaryEntry {
+  term_pt: string;
+  term_en: string;
+}
+
 export interface TranslateStagePayload {
   input: string;
   output: string;
   persona: string;
   notes: string[];
+  glossary?: GlossaryEntry[];
   tokens_in: number;
   tokens_out: number;
   latency_ms: number;

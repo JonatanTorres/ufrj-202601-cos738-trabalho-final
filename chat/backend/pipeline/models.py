@@ -43,11 +43,17 @@ class GraphPayload(BaseModel):
     edges: list[GraphEdge] = Field(default_factory=list)
 
 
+class GlossaryEntry(BaseModel):
+    term_pt: str
+    term_en: str
+
+
 class TranslateStagePayload(BaseModel):
     input: str
     output: str
     persona: str
     notes: list[str] = Field(default_factory=list)
+    glossary: list[GlossaryEntry] = Field(default_factory=list)
     tokens_in: int = 0
     tokens_out: int = 0
     latency_ms: int = 0

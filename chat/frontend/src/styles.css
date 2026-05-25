@@ -1376,6 +1376,37 @@ button { font-family: inherit; }
   margin-bottom: 4px;
 }
 
+.step-glossary {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+}
+.step-glossary-list {
+  margin: 6px 0 0;
+  display: grid;
+  gap: 4px;
+}
+.step-glossary-item {
+  font-size: 13px;
+  line-height: 1.55;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.step-glossary-pt {
+  color: var(--ink);
+  font-weight: 500;
+}
+.step-glossary-arrow {
+  color: var(--muted);
+}
+.step-glossary-en {
+  color: var(--muted);
+  font-style: italic;
+}
+
 .step-stats {
   display: flex;
   gap: 8px;

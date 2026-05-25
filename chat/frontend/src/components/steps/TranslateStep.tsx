@@ -50,6 +50,21 @@ export function TranslateStep({ data, direction }: Props) {
         </div>
       )}
 
+      {data.glossary && data.glossary.length > 0 && (
+        <div className="step-glossary">
+          <div className="step-eyebrow mono">DICIONÁRIO</div>
+          <div className="step-glossary-list">
+            {data.glossary.map((g, i) => (
+              <div key={i} className="step-glossary-item">
+                <span className="step-glossary-pt">{g.term_pt}</span>
+                <span className="step-glossary-arrow mono">→</span>
+                <span className="step-glossary-en">{g.term_en}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="step-stats mono">
         <span>{data.tokens_in} → {data.tokens_out} tokens</span>
         <span>·</span>

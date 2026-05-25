@@ -36,9 +36,27 @@ class LLMSynonyms(BaseModel):
     )
 
 
+class GlossaryTerm(BaseModel):
+    term_pt: str = Field(
+        description="Brazilian Portuguese form of the medical term, "
+                    "as written by the user (or canonical PT-BR if input was EN)."
+    )
+    term_en: str = Field(
+        description="English form of the medical term used in the translation output."
+    )
+
+
 class LLMTranslation(BaseModel):
     output: str = Field(description="Translated text.")
     notes: list[str] = Field(
         default_factory=list,
         description="0 to 3 short bullets explaining translation decisions.",
+    )
+    glossary: list[GlossaryTerm] = Field(
+        default_factory=list,
+        description=(
+            "Key medical terms (drugs, conditions, procedures) mentioned in the "
+            "input, paired as PT-BR ↔ EN. Used by downstream extractor to align "
+            "labels with the user's wording."
+        ),
     )
