@@ -124,15 +124,26 @@ async def run_medical_pipeline(
 
     yield PipelineStepEvent(step="pubmed_search", status="running")
     t0 = time.monotonic()
+    target_articles = 5
+    overfetch = 15
     query = ncbi.build_pubmed_query(drug_labels, cond_labels)
     log.info("[pipeline] step4 pubmed query=%r", query)
-    pmids, total_found = await ncbi.pubmed_search(query, retmax=5) if query else ([], 0)
+    pmids, total_found = await ncbi.pubmed_search(query, retmax=overfetch) if query else ([], 0)
     log.info("[pipeline] step4 esearch → total_found=%d pmids=%s", total_found, pmids)
-    articles: list[PubmedArticle] = await ncbi.pubmed_fetch(pmids) if pmids else []
-    for art in articles:
+    fetched: list[PubmedArticle] = await ncbi.pubmed_fetch(pmids) if pmids else []
+    articles: list[PubmedArticle] = []
+    for art in fetched:
+        if len(articles) >= target_articles:
+            break
+        if not art.abstract.strip():
+            log.info("[pipeline] step4 DISCARD PMID=%s (sem abstract) title=%r",
+                     art.pmid, art.title[:60])
+            continue
+        articles.append(art)
         log.info("[pipeline] step4 fetched PMID=%s year=%s title=%r abstract_chars=%d",
                  art.pmid, art.year, art.title[:60], len(art.abstract))
-    log.info("[pipeline] step4 pubmed done in %.1fs → %d articles", time.monotonic() - t0, len(articles))
+    log.info("[pipeline] step4 pubmed done in %.1fs → %d articles (descartados=%d)",
+             time.monotonic() - t0, len(articles), len(fetched) - len(articles))
     fetch_payload = FetchStagePayload(
         query=query, total_found=total_found, returned=len(articles), articles=articles,
     )

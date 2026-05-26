@@ -1641,6 +1641,7 @@ button { font-family: inherit; }
   background: var(--surface-2);
   border-color: var(--line-2);
   box-shadow: 0 1px 0 var(--line) inset;
+  cursor: default;
 }
 .article-rank {
   font-size: 18px;
@@ -1663,8 +1664,9 @@ button { font-family: inherit; }
 }
 .article-chevron {
   flex-shrink: 0;
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1675,6 +1677,18 @@ button { font-family: inherit; }
   border-radius: 4px;
   background: var(--bg);
   user-select: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.article-chevron:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+  background: var(--surface);
+}
+.article-chevron:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 .article-card.is-open .article-chevron {
   color: var(--ink);

@@ -33,18 +33,20 @@ export function FetchStep({ data }: Props) {
       <div className="article-list">
         {data.articles.map((a, i) => {
           const isOpen = expanded === a.pmid;
+          const open = () => setExpanded(a.pmid);
+          const close = () => setExpanded(null);
           return (
             <div
               key={a.pmid}
               className={"article-card" + (isOpen ? " is-open" : "")}
-              onClick={() => setExpanded(isOpen ? null : a.pmid)}
-              role="button"
-              tabIndex={0}
+              onClick={isOpen ? undefined : open}
+              role={isOpen ? undefined : "button"}
+              tabIndex={isOpen ? -1 : 0}
               aria-expanded={isOpen}
               onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
+                if (!isOpen && (e.key === "Enter" || e.key === " ")) {
                   e.preventDefault();
-                  setExpanded(isOpen ? null : a.pmid);
+                  open();
                 }
               }}
             >
@@ -52,9 +54,17 @@ export function FetchStep({ data }: Props) {
               <div className="article-body">
                 <div className="article-title-row">
                   <div className="article-title">{a.title}</div>
-                  <span className="article-chevron mono" aria-hidden="true">
+                  <button
+                    type="button"
+                    className="article-chevron mono"
+                    aria-label={isOpen ? "Fechar abstract" : "Abrir abstract"}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      isOpen ? close() : open();
+                    }}
+                  >
                     {isOpen ? "−" : "+"}
-                  </span>
+                  </button>
                 </div>
                 <div className="article-meta mono">
                   {a.authors && <span>{a.authors}</span>}
