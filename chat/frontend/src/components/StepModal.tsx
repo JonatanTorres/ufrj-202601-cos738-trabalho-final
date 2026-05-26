@@ -53,8 +53,15 @@ export function StepModal({ stepId, run, onClose, onNav }: Props) {
         isRunning={run.states.extract_articles === "running"}
       />
     );
-  } else if (stepId === "verdict" && d.stage6 && d.stage5) {
-    body = <MatchStep data={d.stage6} aggregate={d.stage5} />;
+  } else if (stepId === "verdict" && d.stage6 && d.stage2 && d.stage5 && d.stage4) {
+    body = (
+      <MatchStep
+        data={d.stage6}
+        questionGraph={d.stage2}
+        aggregate={d.stage5}
+        articles={d.stage4.articles}
+      />
+    );
   } else if (stepId === "translate_en_pt" && d.stage7) {
     body = <TranslateStep data={d.stage7} direction="out" />;
   } else {

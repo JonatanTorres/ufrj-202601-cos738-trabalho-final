@@ -85,26 +85,28 @@ def compute_verdict(
     aggregate: AggregateStagePayload,
     articles: list[PubmedArticle],
 ) -> VerdictStagePayload:
-    question_keys = {(e.s, e.t) for e in question_graph.edges}
-
     edges_consensus: list[EdgeConsensus] = []
     question_edge_consensus: list[str] = []
     score = VerdictScore(total_articles=len(articles))
 
-    for agg_edge in aggregate.edges:
-        consensus, note = _edge_consensus(agg_edge.articles)
+    for qe in question_graph.edges:
+        agg_edge = next(
+            (a for a in aggregate.edges if a.s == qe.s and a.t == qe.t),
+            None,
+        )
+        votes = agg_edge.articles if agg_edge else []
+        consensus, note = _edge_consensus(votes)
         edges_consensus.append(EdgeConsensus(
-            s=agg_edge.s, t=agg_edge.t, type=agg_edge.type,
+            s=qe.s, t=qe.t, type=qe.type,
             consensus=consensus, note=note,
         ))
-        if (agg_edge.s, agg_edge.t) in question_keys:
-            question_edge_consensus.append(consensus)
-            if consensus == "confirm":
-                score.confirms += 1
-            elif consensus == "refute":
-                score.refutes += 1
-            else:
-                score.neutral += 1
+        question_edge_consensus.append(consensus)
+        if consensus == "confirm":
+            score.confirms += 1
+        elif consensus == "refute":
+            score.refutes += 1
+        else:
+            score.neutral += 1
 
     if not articles or not question_edge_consensus:
         return VerdictStagePayload(
