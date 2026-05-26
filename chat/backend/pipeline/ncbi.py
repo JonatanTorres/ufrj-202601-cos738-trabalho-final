@@ -36,16 +36,16 @@ def _design_from_pubtypes(pubtypes: list[str]) -> str | None:
 
 def _weight_for_design(design: str | None) -> float:
     return {
-        "Meta-analysis": 0.95,
-        "Systematic review": 0.9,
-        "RCT": 0.85,
-        "Clinical trial": 0.75,
-        "Cohort": 0.8,
-        "Case-control": 0.65,
-        "Guidelines": 0.85,
-        "Review": 0.6,
-        "Case series": 0.4,
-    }.get(design or "", 0.5)
+        "Meta-analysis": 1,
+        "Systematic review": 1,
+        "RCT": 1,
+        "Clinical trial": 1,
+        "Cohort": 1,
+        "Case-control": 1,
+        "Guidelines": 1,
+        "Review": 1,
+        "Case series": 1,
+    }.get(design or "", 1)
 
 
 async def _get_json(client: httpx.AsyncClient, url: str) -> dict:

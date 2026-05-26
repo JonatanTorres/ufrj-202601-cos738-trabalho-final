@@ -105,6 +105,8 @@ async def run_medical_pipeline(
     mesh_payload = MeshStagePayload(
         url_template=MESH_URL_TEMPLATE, lookups=lookups, unresolved=unresolved,
     )
+    log.info("[pipeline] step3 mesh_search JSON output:\n%s",
+             mesh_payload.model_dump_json(indent=2))
     if unresolved:
         log.info("[pipeline] step3 needs_clarification: %s",
                  [(u.id, u.label) for u in unresolved])
@@ -134,6 +136,8 @@ async def run_medical_pipeline(
     fetch_payload = FetchStagePayload(
         query=query, total_found=total_found, returned=len(articles), articles=articles,
     )
+    log.info("[pipeline] step4 pubmed_search JSON output:\n%s",
+             fetch_payload.model_dump_json(indent=2))
     yield PipelineStepEvent(
         step="pubmed_search",
         status="ok" if articles else "skipped",
@@ -185,6 +189,8 @@ async def run_medical_pipeline(
     aggregate = aggregate_graphs(question_graph, article_graphs)
     log.info("[pipeline] step5 extract_articles done in %.1fs → %d article graphs, %d aggregate edges",
              time.monotonic() - t0, len(article_graphs), len(aggregate.edges))
+    log.info("[pipeline] step5 extract_articles JSON output:\n%s",
+             aggregate.model_dump_json(indent=2))
     yield PipelineStepEvent(
         step="extract_articles",
         status="ok" if article_graphs else "skipped",
@@ -204,6 +210,8 @@ async def run_medical_pipeline(
     log.info("[pipeline] step6 verdict done in %.1fs → label=%s tone=%s (confirms=%d refutes=%d neutral=%d)",
              time.monotonic() - t0, verdict.label, verdict.tone,
              verdict.score.confirms, verdict.score.refutes, verdict.score.neutral)
+    log.info("[pipeline] step6 verdict JSON output:\n%s",
+             verdict.model_dump_json(indent=2))
     yield PipelineStepEvent(
         step="verdict", status="ok", payload=verdict.model_dump()
     )
@@ -214,6 +222,8 @@ async def run_medical_pipeline(
     stage7 = await translate_en_to_pt(justification_en, model_id)
     log.info("[pipeline] step7 translate_en_pt done in %.1fs → %r",
              time.monotonic() - t0, stage7.output[:80])
+    log.info("[pipeline] step7 translate_en_pt JSON output:\n%s",
+             stage7.model_dump_json(indent=2))
     yield PipelineStepEvent(
         step="translate_en_pt", status="ok", payload=stage7.model_dump()
     )
@@ -230,4 +240,6 @@ async def run_medical_pipeline(
         stage7=stage7,
         final_text_pt=stage7.output,
     )
+    log.info("[pipeline] final JSON output:\n%s",
+             final.model_dump_json(indent=2))
     yield PipelineStepEvent(step="final", status="ok", payload=final.model_dump())
