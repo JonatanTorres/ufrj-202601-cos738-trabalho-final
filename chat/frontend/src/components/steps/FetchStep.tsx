@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { FetchStagePayload } from "../../types";
 
 interface Props {
@@ -5,6 +6,8 @@ interface Props {
 }
 
 export function FetchStep({ data }: Props) {
+  const [expanded, setExpanded] = useState<string | null>(null);
+
   return (
     <div className="step-detail">
       <div className="fetch-summary">
@@ -28,30 +31,59 @@ export function FetchStep({ data }: Props) {
         ARTIGOS · ORDEM DE RELEVÂNCIA
       </div>
       <div className="article-list">
-        {data.articles.map((a, i) => (
-          <div key={a.pmid} className="article-card">
-            <div className="article-rank mono">{String(i + 1).padStart(2, "0")}</div>
-            <div className="article-body">
-              <div className="article-title">{a.title}</div>
-              <div className="article-meta mono">
-                {a.authors && <span>{a.authors}</span>}
-                {a.year && (<><span>·</span><span>{a.year}</span></>)}
-                {a.journal && (<><span>·</span><span className="article-journal">{a.journal}</span></>)}
-                {a.design && (<><span>·</span><span>{a.design}</span></>)}
-                {a.n != null && (<><span>·</span><span>n={a.n.toLocaleString("pt-BR")}</span></>)}
-              </div>
-              <div className="article-tags">
-                <span className="pmid-tag mono">PMID: {a.pmid}</span>
-                <span className="weight-tag mono" title="Peso atribuído à evidência (qualidade × design)">
-                  peso {(a.weight * 100).toFixed(0)}
-                </span>
-                <div className="weight-bar">
-                  <div className="weight-bar-fill" style={{ width: (a.weight * 100) + "%" }} />
+        {data.articles.map((a, i) => {
+          const isOpen = expanded === a.pmid;
+          return (
+            <div
+              key={a.pmid}
+              className={"article-card" + (isOpen ? " is-open" : "")}
+              onClick={() => setExpanded(isOpen ? null : a.pmid)}
+              role="button"
+              tabIndex={0}
+              aria-expanded={isOpen}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setExpanded(isOpen ? null : a.pmid);
+                }
+              }}
+            >
+              <div className="article-rank mono">{String(i + 1).padStart(2, "0")}</div>
+              <div className="article-body">
+                <div className="article-title-row">
+                  <div className="article-title">{a.title}</div>
+                  <span className="article-chevron mono" aria-hidden="true">
+                    {isOpen ? "−" : "+"}
+                  </span>
                 </div>
+                <div className="article-meta mono">
+                  {a.authors && <span>{a.authors}</span>}
+                  {a.year && (<><span>·</span><span>{a.year}</span></>)}
+                  {a.journal && (<><span>·</span><span className="article-journal">{a.journal}</span></>)}
+                  {a.design && (<><span>·</span><span>{a.design}</span></>)}
+                  {a.n != null && (<><span>·</span><span>n={a.n.toLocaleString("pt-BR")}</span></>)}
+                </div>
+                <div className="article-tags">
+                  <span className="pmid-tag mono">PMID: {a.pmid}</span>
+                  <span className="weight-tag mono" title="Peso atribuído à evidência (qualidade × design)">
+                    peso {(a.weight * 100).toFixed(0)}
+                  </span>
+                  <div className="weight-bar">
+                    <div className="weight-bar-fill" style={{ width: (a.weight * 100) + "%" }} />
+                  </div>
+                </div>
+                {isOpen && (
+                  <div className="article-abstract">
+                    <div className="step-eyebrow mono">ABSTRACT</div>
+                    <p className="article-abstract-text">
+                      {a.abstract?.trim() || "Abstract indisponível para este artigo."}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         {data.articles.length === 0 && (
           <div className="mono" style={{ color: "var(--muted)", padding: 12 }}>
             Nenhum artigo retornado para a consulta MeSH.
