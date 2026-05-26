@@ -2,11 +2,16 @@ import json
 import logging
 import time
 
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
 
 from .llm_schemas import LLMExtractorResult, LLMSynonyms
 from .models import EdgeType, GlossaryEntry, GraphEdge, GraphNode, GraphPayload
-from .prompts import EXTRACTOR_TEMPLATE, SYNONYMS_TEMPLATE
+from .prompts import (
+    ARTICLE_EXTRACTOR_TEMPLATE,
+    QUESTION_EXTRACTOR_TEMPLATE,
+    SYNONYMS_TEMPLATE,
+)
 
 log = logging.getLogger("medgraph.extractor")
 
@@ -97,25 +102,20 @@ def _render_glossary_for_prompt(glossary: dict[str, str]) -> str:
     return json.dumps(pairs, ensure_ascii=False)
 
 
-async def extract_graph_bilingual(
+async def _extract_graph(
+    template: ChatPromptTemplate,
+    kind: str,
     text_en: str,
     model_id: str,
-    glossary: dict[str, str] | None = None,
+    glossary: dict[str, str] | None,
 ) -> GraphPayload:
-    """Extrai grafo bilíngue de um texto em inglês.
-    IDs em snake_case inglês, labels em PT-BR. Apenas nós drug/condition,
-    e relações induces/treats/no_relation.
-
-    `glossary` mapeia id_normalizado_EN → label PT vindo do tradutor da etapa 1.
-    Termos que batem com o glossário recebem o label do usuário verbatim.
-    """
     glossary = glossary or {}
     llm = ChatOllama(model=model_id, reasoning=False).with_structured_output(
         LLMExtractorResult, method="json_schema"
     )
-    chain = EXTRACTOR_TEMPLATE | llm
-    log.info("  → extractor.ainvoke (%s, input %d chars, glossary=%d terms)…",
-             model_id, len(text_en), len(glossary))
+    chain = template | llm
+    log.info("  → extractor[%s].ainvoke (%s, input %d chars, glossary=%d terms)…",
+             kind, model_id, len(text_en), len(glossary))
     t0 = time.monotonic()
     try:
         result = await chain.ainvoke({
@@ -123,10 +123,37 @@ async def extract_graph_bilingual(
             "glossary": _render_glossary_for_prompt(glossary),
         })
     except Exception as e:
-        log.warning("  → extractor failed after %.1fs: %s", time.monotonic() - t0, e)
+        log.warning("  → extractor[%s] failed after %.1fs: %s",
+                    kind, time.monotonic() - t0, e)
         return GraphPayload()
-    log.info("  → extractor done in %.1fs", time.monotonic() - t0)
+    log.info("  → extractor[%s] done in %.1fs", kind, time.monotonic() - t0)
     return _to_graph_payload(result, glossary)
+
+
+async def extract_graph_from_question(
+    text_en: str,
+    model_id: str,
+    glossary: dict[str, str] | None = None,
+) -> GraphPayload:
+    """Extrai grafo bilíngue da PERGUNTA/AFIRMAÇÃO do usuário (etapa 2).
+    Input típico: 1 sentença curta. Não assume estrutura de abstract."""
+    return await _extract_graph(
+        QUESTION_EXTRACTOR_TEMPLATE, "question", text_en, model_id, glossary,
+    )
+
+
+async def extract_graph_from_article(
+    text_en: str,
+    model_id: str,
+    glossary: dict[str, str] | None = None,
+) -> GraphPayload:
+    """Extrai grafo bilíngue de um ARTIGO PubMed (etapa 5).
+    Input típico: título + abstract (frequentemente estruturado em seções
+    BACKGROUND/METHODS/RESULTS/CONCLUSIONS). O prompt prioriza CONCLUSIONS
+    sobre BACKGROUND quando elas divergem."""
+    return await _extract_graph(
+        ARTICLE_EXTRACTOR_TEMPLATE, "article", text_en, model_id, glossary,
+    )
 
 
 async def english_synonyms(

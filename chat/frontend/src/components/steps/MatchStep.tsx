@@ -37,13 +37,18 @@ interface EdgeArticleGroups {
 function groupArticlesForEdge(
   s: string,
   t: string,
+  questionType: EdgeType,
   aggregate: AggregateStagePayload,
   articles: PubmedArticle[],
 ): EdgeArticleGroups {
   const aggEdge = aggregate.edges.find(e => e.s === s && e.t === t);
   const votes = aggEdge?.articles || [];
-  const supportPmids = new Set(votes.filter(v => v.supports).map(v => v.pmid));
-  const refutePmids = new Set(votes.filter(v => !v.supports).map(v => v.pmid));
+  const supportPmids = new Set(
+    votes.filter(v => v.type === questionType).map(v => v.pmid),
+  );
+  const refutePmids = new Set(
+    votes.filter(v => v.type !== questionType).map(v => v.pmid),
+  );
   const votedPmids = new Set(votes.map(v => v.pmid));
   return {
     apoiam: articles.filter(a => supportPmids.has(a.pmid)),
@@ -127,7 +132,7 @@ export function MatchStep({ data, questionGraph, aggregate, articles }: Props) {
               const isOpen = expanded === key;
               const aNode = questionGraph.nodes.find(n => n.id === c.s);
               const bNode = questionGraph.nodes.find(n => n.id === c.t);
-              const groups = groupArticlesForEdge(c.s, c.t, aggregate, articles);
+              const groups = groupArticlesForEdge(c.s, c.t, c.type, aggregate, articles);
               const toggle = () => setExpanded(isOpen ? null : key);
               return (
                 <div

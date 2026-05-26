@@ -106,7 +106,7 @@ class FetchStagePayload(BaseModel):
 
 class ArticleVote(BaseModel):
     pmid: str
-    supports: bool
+    type: EdgeType
     note: Optional[str] = None
 
 

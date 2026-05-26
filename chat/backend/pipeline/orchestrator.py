@@ -3,7 +3,12 @@ import time
 from typing import AsyncIterator
 
 from . import ncbi
-from .extractor import build_glossary_dict, english_synonyms, extract_graph_bilingual
+from .extractor import (
+    build_glossary_dict,
+    english_synonyms,
+    extract_graph_from_article,
+    extract_graph_from_question,
+)
 
 log = logging.getLogger("medgraph.pipeline")
 from .models import (
@@ -58,7 +63,7 @@ async def run_medical_pipeline(
 
     yield PipelineStepEvent(step="extract_question", status="running")
     t0 = time.monotonic()
-    question_graph = await extract_graph_bilingual(stage1.output, model_id, glossary)
+    question_graph = await extract_graph_from_question(stage1.output, model_id, glossary)
     log.info("[pipeline] step2 extract_question done in %.1fs → %d nodes, %d edges",
              time.monotonic() - t0, len(question_graph.nodes), len(question_graph.edges))
     log.info("[pipeline] step2 extract_question JSON output:\n%s",
@@ -171,7 +176,7 @@ async def run_medical_pipeline(
                      i, len(articles), art.pmid, len(text))
             art_t0 = time.monotonic()
             try:
-                g = await extract_graph_bilingual(text, model_id, glossary)
+                g = await extract_graph_from_article(text, model_id, glossary)
             except Exception as e:
                 log.warning("[pipeline] step5 [%d/%d] PMID=%s FAILED after %.1fs: %s",
                             i, len(articles), art.pmid, time.monotonic() - art_t0, e)

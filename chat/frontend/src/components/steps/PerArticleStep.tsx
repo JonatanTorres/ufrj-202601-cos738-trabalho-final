@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { MGGraph } from "../MGGraph";
 import type {
   AggregateStagePayload,
+  EdgeType,
   GraphEdge,
   PipelineProgress,
   PubmedArticle,
@@ -13,6 +14,12 @@ interface Props {
   progress?: PipelineProgress | null;
   isRunning?: boolean;
 }
+
+const EDGE_TYPE_PT: Record<EdgeType, string> = {
+  induces: "causa",
+  treats: "trata",
+  no_relation: "sem relação",
+};
 
 export function PerArticleStep({ data, articles, progress, isRunning }: Props) {
   const processedSet = new Set(progress?.processed_pmids || []);
@@ -32,26 +39,28 @@ export function PerArticleStep({ data, articles, progress, isRunning }: Props) {
     return () => window.removeEventListener("resize", measure);
   }, []);
 
-  const perArt: Record<string, { edges: number; supports: number }> = {};
+  const perArt: Record<string, number> = {};
   data.edges.forEach(e => {
     e.articles.forEach(a => {
-      if (!perArt[a.pmid]) perArt[a.pmid] = { edges: 0, supports: 0 };
-      perArt[a.pmid].edges++;
-      if (a.supports) perArt[a.pmid].supports++;
+      perArt[a.pmid] = (perArt[a.pmid] || 0) + 1;
     });
   });
 
   const graphEdges: GraphEdge[] = data.edges.map(e => {
     const total = e.articles.length;
-    const supports = e.articles.filter(a => a.supports).length;
-    const inSel = sel ? e.articles.some(a => a.pmid === sel) : true;
+    const articleVote = sel ? e.articles.find(a => a.pmid === sel) : undefined;
+    const inSel = sel ? !!articleVote : true;
+    const edgeType: EdgeType = articleVote ? articleVote.type : e.type;
     return {
       s: e.s,
       t: e.t,
-      type: e.type,
-      conf: 0.25 + (total > 0 ? supports / total : 0) * 0.7,
-      label: sel ? (e.articles.find(a => a.pmid === sel)?.supports ? "apoia" : "refuta") : String(total),
-      // Used only for visual dim via styling; MGGraph doesn't read this.
+      type: edgeType,
+      conf: sel
+        ? (articleVote ? 0.9 : 0.08)
+        : 0.3 + Math.min(total / Math.max(1, articles.length), 1) * 0.6,
+      label: articleVote
+        ? EDGE_TYPE_PT[articleVote.type]
+        : String(total),
       ...(inSel ? {} : { conf: 0.08 }),
     };
   });
@@ -98,7 +107,7 @@ export function PerArticleStep({ data, articles, progress, isRunning }: Props) {
           <div className="per-art-meta mono">{data.edges.length} arestas · todas fontes</div>
         </button>
         {articles.map(a => {
-          const stat = perArt[a.pmid] || { edges: 0, supports: 0 };
+          const edgeCount = perArt[a.pmid] || 0;
           const isProcessed = !hasProgress || processedSet.has(a.pmid);
           const isPending = hasProgress && !isProcessed;
           return (
@@ -121,7 +130,7 @@ export function PerArticleStep({ data, articles, progress, isRunning }: Props) {
               <div className="per-art-meta mono">
                 <span className="pmid-tag mono">PMID {a.pmid}</span>
                 {isProcessed ? (
-                  <span> · {stat.edges} arestas · {stat.supports} apoiam</span>
+                  <span> · {edgeCount} arestas</span>
                 ) : (
                   <span> · processando…</span>
                 )}
@@ -136,8 +145,8 @@ export function PerArticleStep({ data, articles, progress, isRunning }: Props) {
         </div>
         <div className="per-article-legend mono">
           {sel === null
-            ? "Espessura das arestas = nº de artigos que as sustentam. Clique em um artigo para isolar."
-            : "Mostrando apenas relações citadas pelo artigo selecionado."}
+            ? "Espessura das arestas = nº de artigos que mencionam a relação. Clique em um artigo para ver suas relações."
+            : "Mostrando as relações afirmadas pelo artigo selecionado (causa, trata, sem relação)."}
         </div>
       </div>
     </div>

@@ -202,11 +202,14 @@ async def pubmed_fetch(pmids: list[str]) -> list[PubmedArticle]:
         pmid = pmid_el.text if pmid_el is not None and pmid_el.text else ""
         title_el = art.find(".//ArticleTitle")
         title = "".join(title_el.itertext()).strip() if title_el is not None else ""
-        abstract_parts = [
-            "".join(t.itertext()).strip()
-            for t in art.findall(".//Abstract/AbstractText")
-        ]
-        abstract = "\n".join(p for p in abstract_parts if p)
+        abstract_parts: list[str] = []
+        for t in art.findall(".//Abstract/AbstractText"):
+            text = "".join(t.itertext()).strip()
+            if not text:
+                continue
+            label = (t.get("Label") or "").strip()
+            abstract_parts.append(f"{label}: {text}" if label else text)
+        abstract = "\n".join(abstract_parts)
         journal_el = art.find(".//Journal/Title")
         if journal_el is None:
             journal_el = art.find(".//Journal/ISOAbbreviation")

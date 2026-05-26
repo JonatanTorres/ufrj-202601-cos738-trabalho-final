@@ -4,6 +4,7 @@ from .models import (
     AggregateStagePayload,
     ArticleVote,
     EdgeConsensus,
+    EdgeType,
     EdgeWithArticles,
     GraphNode,
     GraphPayload,
@@ -40,11 +41,7 @@ def aggregate_graphs(
             match = next((e for e in g.edges if e.s == qe.s and e.t == qe.t), None)
             if match is None:
                 continue
-            supports = match.type == qe.type
-            note = None
-            if not supports:
-                note = f"artigo afirma '{match.type}' vs. pergunta '{qe.type}'"
-            votes.append(ArticleVote(pmid=pmid, supports=supports, note=note))
+            votes.append(ArticleVote(pmid=pmid, type=match.type))
         edges_out.append(EdgeWithArticles(s=qe.s, t=qe.t, type=qe.type, articles=votes))
 
     extra_edges: dict[tuple[str, str, str], list[ArticleVote]] = {}
@@ -56,7 +53,7 @@ def aggregate_graphs(
             if e.s not in nodes_by_id or e.t not in nodes_by_id:
                 continue
             k = (e.s, e.t, e.type)
-            extra_edges.setdefault(k, []).append(ArticleVote(pmid=pmid, supports=True))
+            extra_edges.setdefault(k, []).append(ArticleVote(pmid=pmid, type=e.type))
 
     for (s, t, typ), votes in list(extra_edges.items())[:6]:
         edges_out.append(EdgeWithArticles(s=s, t=t, type=typ, articles=votes))
@@ -67,9 +64,15 @@ def aggregate_graphs(
     )
 
 
-def _edge_consensus(votes: list[ArticleVote]) -> tuple[str, str | None]:
-    supports = sum(1 for v in votes if v.supports)
-    refutes = sum(1 for v in votes if not v.supports)
+def _edge_consensus(
+    votes: list[ArticleVote], question_type: EdgeType
+) -> tuple[str, str | None]:
+    """Compara o type de cada voto com o type afirmado na pergunta para derivar
+    confirm/refute/neutral. Esta é a etapa onde o 'match' acontece — a etapa 5
+    apenas registra o que cada artigo afirma (induces/treats/no_relation), sem
+    rotular como apoia/refuta."""
+    supports = sum(1 for v in votes if v.type == question_type)
+    refutes = sum(1 for v in votes if v.type != question_type)
     total = len(votes)
     if supports >= 3 and supports > refutes:
         return "confirm", f"{supports}/{total} apoiam"
@@ -95,7 +98,7 @@ def compute_verdict(
             None,
         )
         votes = agg_edge.articles if agg_edge else []
-        consensus, note = _edge_consensus(votes)
+        consensus, note = _edge_consensus(votes, qe.type)
         edges_consensus.append(EdgeConsensus(
             s=qe.s, t=qe.t, type=qe.type,
             consensus=consensus, note=note,
@@ -180,8 +183,8 @@ def compose_justification_en(
         agg = next((a for a in aggregate.edges if a.s == qe.s and a.t == qe.t), None)
         if agg is None:
             continue
-        supports = sum(1 for v in agg.articles if v.supports)
-        refutes = sum(1 for v in agg.articles if not v.supports)
+        supports = sum(1 for v in agg.articles if v.type == qe.type)
+        refutes = sum(1 for v in agg.articles if v.type != qe.type)
         chem = next((n for n in aggregate.nodes if n.id == qe.s), None)
         cond = next((n for n in aggregate.nodes if n.id == qe.t), None)
         chem_label = chem.label if chem else qe.s

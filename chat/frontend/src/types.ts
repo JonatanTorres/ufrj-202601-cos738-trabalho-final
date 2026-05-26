@@ -121,7 +121,7 @@ export interface FetchStagePayload {
 
 export interface ArticleVote {
   pmid: string;
-  supports: boolean;
+  type: EdgeType;
   note: string | null;
 }
 
