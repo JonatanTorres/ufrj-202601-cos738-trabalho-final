@@ -1,4 +1,10 @@
-export type ModelKey = "qwen" | "llama";
+export type ModelKey = string;
+
+export interface ModelInfo {
+  key: ModelKey;
+  label: string;
+  provider: string;
+}
 
 export type VerdictTone = "ok" | "warn" | "bad" | "info";
 export type VerdictLabel =

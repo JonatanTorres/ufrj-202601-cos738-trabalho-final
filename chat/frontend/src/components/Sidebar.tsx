@@ -1,9 +1,10 @@
-import type { ModelKey, Thread } from "../types";
+import type { ModelInfo, ModelKey, Thread } from "../types";
 import { LogoMark } from "./illustrations";
 
 interface Props {
   threads: Thread[];
   activeId: string | null;
+  models: ModelInfo[];
   model: ModelKey;
   collapsed: boolean;
   onNew: () => void;
@@ -11,12 +12,8 @@ interface Props {
   onToggle: () => void;
 }
 
-const MODEL_LABELS: Record<ModelKey, string> = {
-  qwen: "qwen3:8b",
-  llama: "llama3.1:8b",
-};
-
-export function Sidebar({ threads, activeId, model, collapsed, onNew, onPick, onToggle }: Props) {
+export function Sidebar({ threads, activeId, models, model, collapsed, onNew, onPick, onToggle }: Props) {
+  const current = models.find(m => m.key === model);
   return (
     <aside className={"sidebar" + (collapsed ? " collapsed" : "")}>
       <div className="sidebar-head">
@@ -53,8 +50,8 @@ export function Sidebar({ threads, activeId, model, collapsed, onNew, onPick, on
           </div>
 
           <div className="sidebar-foot mono">
-            <div className="kv"><span>modelo</span><span>{MODEL_LABELS[model]}</span></div>
-            <div className="kv"><span>backend</span><span>ollama</span></div>
+            <div className="kv"><span>modelo</span><span>{current?.label ?? model}</span></div>
+            <div className="kv"><span>backend</span><span>{current?.provider ?? "—"}</span></div>
             <div className="kv"><span>status</span><span className="ok">● online</span></div>
           </div>
         </>

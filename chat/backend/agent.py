@@ -1,9 +1,10 @@
 import json
 from typing import AsyncIterator, Protocol
 
+from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
-from langchain_ollama import ChatOllama
 
+from .llm import DEFAULT_MODEL, MODEL_REGISTRY, build_chat_model
 from .pipeline import run_medical_pipeline
 from .tools import TOOLS, TOOL_MAP
 
@@ -13,11 +14,7 @@ class HistoryItem(Protocol):
     content: str
 
 
-AVAILABLE_MODELS = {
-    "qwen":  "qwen3:8b",
-    "llama": "llama3.1:8b",
-}
-DEFAULT_MODEL = "qwen"
+__all__ = ["DEFAULT_MODEL", "MODEL_REGISTRY", "build_llm", "run_agent_stream"]
 
 MAIN_SYSTEM_PROMPT = """
 Você é um assistente médico que conversa em português, especializado em discutir
@@ -43,8 +40,8 @@ NÃO use pipeline_medico para:
 """
 
 
-def build_llm(model_key: str) -> ChatOllama:
-    return ChatOllama(model=AVAILABLE_MODELS[model_key], reasoning=False)
+def build_llm(model_key: str) -> BaseChatModel:
+    return build_chat_model(model_key)
 
 
 def _build_clarification_message(enunciado: str, unresolved: list[dict]) -> str:
@@ -87,7 +84,6 @@ async def run_agent_stream(
     - ("done", {}) ao final
     """
     base_llm = build_llm(model_key)
-    model_id = AVAILABLE_MODELS[model_key]
     llm_with_tools = base_llm.bind_tools(TOOLS)
     messages = [SystemMessage(content=MAIN_SYSTEM_PROMPT)]
     for h in history or []:
@@ -105,7 +101,7 @@ async def run_agent_stream(
             enunciado = tc["args"].get("enunciado") or message
             final_result: dict | None = None
             clarification_msg: str | None = None
-            async for evt in run_medical_pipeline(enunciado, model_id):
+            async for evt in run_medical_pipeline(enunciado, model_key):
                 yield ("pipeline_step", evt.model_dump())
                 if evt.step == "final" and evt.status == "ok":
                     final_result = evt.payload

@@ -3,8 +3,8 @@ import logging
 import time
 
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_ollama import ChatOllama
 
+from ..llm import build_chat_model
 from .llm_schemas import LLMExtractorResult, LLMSynonyms
 from .models import EdgeType, GlossaryEntry, GraphEdge, GraphNode, GraphPayload
 from .prompts import (
@@ -106,16 +106,16 @@ async def _extract_graph(
     template: ChatPromptTemplate,
     kind: str,
     text_en: str,
-    model_id: str,
+    model_key: str,
     glossary: dict[str, str] | None,
 ) -> GraphPayload:
     glossary = glossary or {}
-    llm = ChatOllama(model=model_id, reasoning=False).with_structured_output(
+    llm = build_chat_model(model_key).with_structured_output(
         LLMExtractorResult, method="json_schema"
     )
     chain = template | llm
     log.info("  → extractor[%s].ainvoke (%s, input %d chars, glossary=%d terms)…",
-             kind, model_id, len(text_en), len(glossary))
+             kind, model_key, len(text_en), len(glossary))
     t0 = time.monotonic()
     try:
         result = await chain.ainvoke({
@@ -132,19 +132,19 @@ async def _extract_graph(
 
 async def extract_graph_from_question(
     text_en: str,
-    model_id: str,
+    model_key: str,
     glossary: dict[str, str] | None = None,
 ) -> GraphPayload:
     """Extrai grafo bilíngue da PERGUNTA/AFIRMAÇÃO do usuário (etapa 2).
     Input típico: 1 sentença curta. Não assume estrutura de abstract."""
     return await _extract_graph(
-        QUESTION_EXTRACTOR_TEMPLATE, "question", text_en, model_id, glossary,
+        QUESTION_EXTRACTOR_TEMPLATE, "question", text_en, model_key, glossary,
     )
 
 
 async def extract_graph_from_article(
     text_en: str,
-    model_id: str,
+    model_key: str,
     glossary: dict[str, str] | None = None,
 ) -> GraphPayload:
     """Extrai grafo bilíngue de um ARTIGO PubMed (etapa 5).
@@ -152,21 +152,21 @@ async def extract_graph_from_article(
     BACKGROUND/METHODS/RESULTS/CONCLUSIONS). O prompt prioriza CONCLUSIONS
     sobre BACKGROUND quando elas divergem."""
     return await _extract_graph(
-        ARTICLE_EXTRACTOR_TEMPLATE, "article", text_en, model_id, glossary,
+        ARTICLE_EXTRACTOR_TEMPLATE, "article", text_en, model_key, glossary,
     )
 
 
 async def english_synonyms(
-    term_en: str, kind: str, model_id: str, max_n: int = 3
+    term_en: str, kind: str, model_key: str, max_n: int = 3
 ) -> list[str]:
     """Retorna até `max_n` sinônimos médicos em inglês para `term_en`.
     `kind` é 'drug' ou 'condition'. Retorna [] em falha. Filtra não-ASCII."""
-    llm = ChatOllama(model=model_id, reasoning=False).with_structured_output(
+    llm = build_chat_model(model_key).with_structured_output(
         LLMSynonyms, method="json_schema"
     )
     chain = SYNONYMS_TEMPLATE | llm
     term_display = term_en.replace("_", " ")
-    log.info("  → synonyms.ainvoke (%s, kind=%s term=%r)…", model_id, kind, term_display)
+    log.info("  → synonyms.ainvoke (%s, kind=%s term=%r)…", model_key, kind, term_display)
     t0 = time.monotonic()
     try:
         result = await chain.ainvoke({"kind": kind, "term": term_display, "max_n": max_n})

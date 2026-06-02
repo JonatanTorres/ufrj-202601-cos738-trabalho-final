@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { streamChat, type HistoryItem } from "./api";
+import { fetchModels, streamChat, type HistoryItem } from "./api";
 import {
   applyPipelineEvent,
   emptyPipelineState,
   type AssistantMsg,
   type Message,
+  type ModelInfo,
   type ModelKey,
   type PipelineStepId,
   type Thread,
@@ -25,6 +26,7 @@ export default function App() {
   const [threads, setThreads] = useState<Thread[]>([]);
   const [activeThread, setActiveThread] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [models, setModels] = useState<ModelInfo[]>([]);
   const [model, setModel] = useState<ModelKey>("qwen");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeStep, setActiveStep] = useState<{ msgId: string; stepId: PipelineStepId } | null>(null);
@@ -35,6 +37,18 @@ export default function App() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, pending]);
+
+  useEffect(() => {
+    fetchModels()
+      .then(({ models, default: def }) => {
+        setModels(models);
+        if (models.length > 0 && !models.some(m => m.key === model)) {
+          setModel(def || models[0].key);
+        }
+      })
+      .catch(err => console.error("fetchModels falhou:", err));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const updateAssistant = (id: string, patch: (prev: AssistantMsg) => AssistantMsg) => {
     setMessages(ms =>
@@ -93,6 +107,13 @@ export default function App() {
             const prev = m.pipeline || emptyPipelineState(text);
             return { ...m, pipeline: applyPipelineEvent(prev, event.data) };
           });
+        } else if (event.type === "error") {
+          const msg = event.data.message || "Erro desconhecido no servidor.";
+          updateAssistant(assistantId, m => ({
+            ...m,
+            text: m.text ? `${m.text}\n\n${msg}` : msg,
+            pending: false,
+          }));
         } else if (event.type === "done") {
           updateAssistant(assistantId, m => ({
             ...m,
@@ -150,6 +171,7 @@ export default function App() {
       <Sidebar
         threads={threads}
         activeId={activeThread}
+        models={models}
         model={model}
         collapsed={sidebarCollapsed}
         onNew={newChat}
@@ -157,7 +179,7 @@ export default function App() {
         onToggle={() => setSidebarCollapsed(c => !c)}
       />
       <main className="main">
-        <Topbar sessionId={activeThread} model={model} onModelChange={setModel} />
+        <Topbar sessionId={activeThread} models={models} model={model} onModelChange={setModel} />
 
         {activePipeline && (
           <PipelineStrip

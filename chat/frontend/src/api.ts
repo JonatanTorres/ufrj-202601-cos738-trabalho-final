@@ -1,4 +1,4 @@
-import type { ModelKey, PipelineStepEvent } from "./types";
+import type { ModelInfo, ModelKey, PipelineStepEvent } from "./types";
 
 export interface HistoryItem {
   role: "user" | "assistant";
@@ -9,11 +9,12 @@ export type SSEEvent =
   | { type: "token"; data: { text: string } }
   | { type: "tool_call"; data: { name: string; args: Record<string, unknown>; result: string } }
   | { type: "pipeline_step"; data: PipelineStepEvent }
+  | { type: "error"; data: { message: string } }
   | { type: "done"; data: Record<string, never> };
 
 const API_BASE = "/api";
 
-export async function fetchModels(): Promise<{ models: ModelKey[]; default: ModelKey }> {
+export async function fetchModels(): Promise<{ models: ModelInfo[]; default: ModelKey }> {
   const res = await fetch(`${API_BASE}/models`);
   if (!res.ok) throw new Error(`GET /models failed: ${res.status}`);
   return res.json();

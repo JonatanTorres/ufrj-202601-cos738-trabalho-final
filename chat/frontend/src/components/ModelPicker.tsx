@@ -1,27 +1,24 @@
-import type { ModelKey } from "../types";
+import type { ModelInfo, ModelKey } from "../types";
 
 interface Props {
+  models: ModelInfo[];
   value: ModelKey;
   onChange: (m: ModelKey) => void;
 }
 
-const OPTIONS: Array<{ key: ModelKey; label: string }> = [
-  { key: "qwen", label: "qwen" },
-  { key: "llama", label: "llama" },
-];
-
-export function ModelPicker({ value, onChange }: Props) {
+export function ModelPicker({ models, value, onChange }: Props) {
   return (
     <div className="model-picker" role="tablist">
-      {OPTIONS.map(o => (
+      {models.map(m => (
         <button
-          key={o.key}
-          className={"model-btn" + (value === o.key ? " active" : "")}
-          onClick={() => onChange(o.key)}
+          key={m.key}
+          className={"model-btn" + (value === m.key ? " active" : "")}
+          onClick={() => onChange(m.key)}
           role="tab"
-          aria-selected={value === o.key}
+          aria-selected={value === m.key}
+          title={`${m.label} · ${m.provider}`}
         >
-          {o.label}
+          {m.label || m.key}
         </button>
       ))}
     </div>

@@ -4,7 +4,8 @@ Reusa exatamente a mesma lógica que a API expõe (backend.agent.run_agent_strea
 """
 import asyncio
 
-from backend.agent import AVAILABLE_MODELS, DEFAULT_MODEL, run_agent_stream
+from backend.agent import run_agent_stream
+from backend.llm import DEFAULT_MODEL, MODEL_REGISTRY, model_display_name
 
 
 async def turn(message: str, model_key: str) -> None:
@@ -20,8 +21,9 @@ async def turn(message: str, model_key: str) -> None:
 
 async def repl() -> None:
     current = DEFAULT_MODEL
-    print(f"Conectado a {AVAILABLE_MODELS[current]}.")
-    print("Comandos: /model qwen | /model llama | /quit\n")
+    print(f"Conectado a {model_display_name(current)}.")
+    model_cmds = " | ".join(f"/model {k}" for k in MODEL_REGISTRY)
+    print(f"Comandos: {model_cmds} | /quit\n")
 
     loop = asyncio.get_event_loop()
     while True:
@@ -37,11 +39,11 @@ async def repl() -> None:
             break
         if user_input.startswith("/model "):
             choice = user_input.split(" ", 1)[1].strip()
-            if choice in AVAILABLE_MODELS:
+            if choice in MODEL_REGISTRY:
                 current = choice
-                print(f"-> Trocado para {AVAILABLE_MODELS[current]}")
+                print(f"-> Trocado para {model_display_name(current)}")
             else:
-                print(f"Modelo desconhecido. Disponiveis: {list(AVAILABLE_MODELS)}")
+                print(f"Modelo desconhecido. Disponiveis: {list(MODEL_REGISTRY)}")
             continue
 
         await turn(user_input, current)

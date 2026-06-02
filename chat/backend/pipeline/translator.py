@@ -1,8 +1,8 @@
 import time
 
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_ollama import ChatOllama
 
+from ..llm import build_chat_model, model_display_name
 from .llm_schemas import LLMTranslation
 from .models import GlossaryEntry, TranslateStagePayload
 from .prompts import EN_PT_TEMPLATE, PT_EN_TEMPLATE
@@ -15,9 +15,9 @@ def _approx_tokens(text: str) -> int:
 
 
 async def _translate(
-    text: str, template: ChatPromptTemplate, model_id: str
+    text: str, template: ChatPromptTemplate, model_key: str
 ) -> LLMTranslation | None:
-    llm = ChatOllama(model=model_id, reasoning=False).with_structured_output(
+    llm = build_chat_model(model_key).with_structured_output(
         LLMTranslation, method="json_schema"
     )
     chain = template | llm
@@ -27,9 +27,9 @@ async def _translate(
         return None
 
 
-async def translate_pt_to_en(text: str, model_id: str) -> TranslateStagePayload:
+async def translate_pt_to_en(text: str, model_key: str) -> TranslateStagePayload:
     started = time.monotonic()
-    result = await _translate(text, PT_EN_TEMPLATE, model_id)
+    result = await _translate(text, PT_EN_TEMPLATE, model_key)
     output = (result.output if result else None) or text
     notes = list(result.notes) if result else []
     glossary = [
@@ -46,13 +46,13 @@ async def translate_pt_to_en(text: str, model_id: str) -> TranslateStagePayload:
         tokens_in=_approx_tokens(text),
         tokens_out=_approx_tokens(output),
         latency_ms=int((time.monotonic() - started) * 1000),
-        model=model_id,
+        model=model_display_name(model_key),
     )
 
 
-async def translate_en_to_pt(text: str, model_id: str) -> TranslateStagePayload:
+async def translate_en_to_pt(text: str, model_key: str) -> TranslateStagePayload:
     started = time.monotonic()
-    result = await _translate(text, EN_PT_TEMPLATE, model_id)
+    result = await _translate(text, EN_PT_TEMPLATE, model_key)
     output = (result.output if result else None) or text
     notes = list(result.notes) if result else []
     return TranslateStagePayload(
@@ -63,5 +63,5 @@ async def translate_en_to_pt(text: str, model_id: str) -> TranslateStagePayload:
         tokens_in=_approx_tokens(text),
         tokens_out=_approx_tokens(output),
         latency_ms=int((time.monotonic() - started) * 1000),
-        model=model_id,
+        model=model_display_name(model_key),
     )

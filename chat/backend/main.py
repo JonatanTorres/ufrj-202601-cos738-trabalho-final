@@ -5,7 +5,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sse_starlette.sse import EventSourceResponse
 
-from .agent import AVAILABLE_MODELS, DEFAULT_MODEL, run_agent_stream
+from .agent import run_agent_stream
+from .llm import DEFAULT_MODEL, MODEL_REGISTRY
 from .schemas import ChatRequest
 
 logging.basicConfig(
@@ -14,6 +15,7 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 logging.getLogger("medgraph").setLevel(logging.INFO)
+log = logging.getLogger("medgraph.api")
 
 app = FastAPI(title="MedGraph Chat API")
 
@@ -27,16 +29,27 @@ app.add_middleware(
 
 @app.get("/models")
 def models():
-    return {"models": list(AVAILABLE_MODELS), "default": DEFAULT_MODEL}
+    return {
+        "models": [
+            {"key": s.key, "label": s.label, "provider": s.provider}
+            for s in MODEL_REGISTRY.values()
+        ],
+        "default": DEFAULT_MODEL,
+    }
 
 
 @app.post("/chat")
 async def chat(req: ChatRequest):
-    if req.model not in AVAILABLE_MODELS:
+    if req.model not in MODEL_REGISTRY:
         raise HTTPException(status_code=400, detail=f"Unknown model: {req.model}")
 
     async def event_stream():
-        async for event, data in run_agent_stream(req.message, req.model, req.history):
-            yield {"event": event, "data": json.dumps(data, ensure_ascii=False)}
+        try:
+            async for event, data in run_agent_stream(req.message, req.model, req.history):
+                yield {"event": event, "data": json.dumps(data, ensure_ascii=False)}
+        except Exception as e:
+            log.exception("Falha no agente")
+            yield {"event": "error", "data": json.dumps({"message": str(e)}, ensure_ascii=False)}
+            yield {"event": "done", "data": "{}"}
 
     return EventSourceResponse(event_stream())

@@ -36,7 +36,7 @@ def _term_from_id(id_: str) -> str:
 
 async def run_medical_pipeline(
     enunciado_pt: str,
-    model_id: str,
+    model_key: str,
 ) -> AsyncIterator[PipelineStepEvent]:
     """Executa o pipeline de 7 etapas em ordem, emitindo um evento por etapa.
 
@@ -45,11 +45,11 @@ async def run_medical_pipeline(
     desemboca em 'Sem evidência'.
     """
     pipeline_started = time.monotonic()
-    log.info("[pipeline] START enunciado=%r model=%s", enunciado_pt, model_id)
+    log.info("[pipeline] START enunciado=%r model=%s", enunciado_pt, model_key)
 
     yield PipelineStepEvent(step="translate_pt_en", status="running")
     t0 = time.monotonic()
-    stage1 = await translate_pt_to_en(enunciado_pt, model_id)
+    stage1 = await translate_pt_to_en(enunciado_pt, model_key)
     log.info("[pipeline] step1 translate_pt_en done in %.1fs → %r",
              time.monotonic() - t0, stage1.output)
     log.info("[pipeline] step1 translate_pt_en JSON output:\n%s",
@@ -63,7 +63,7 @@ async def run_medical_pipeline(
 
     yield PipelineStepEvent(step="extract_question", status="running")
     t0 = time.monotonic()
-    question_graph = await extract_graph_from_question(stage1.output, model_id, glossary)
+    question_graph = await extract_graph_from_question(stage1.output, model_key, glossary)
     log.info("[pipeline] step2 extract_question done in %.1fs → %d nodes, %d edges",
              time.monotonic() - t0, len(question_graph.nodes), len(question_graph.edges))
     log.info("[pipeline] step2 extract_question JSON output:\n%s",
@@ -82,7 +82,7 @@ async def run_medical_pipeline(
         term = _term_from_id(node.id)
         hit = await ncbi.mesh_search(term)
         if not hit.ok:
-            syns = await english_synonyms(node.id, node.type, model_id, max_n=3)
+            syns = await english_synonyms(node.id, node.type, model_key, max_n=3)
             if syns:
                 log.info("[pipeline] step3 retry %r with synonyms=%s", term, syns)
                 hit = await ncbi.mesh_search_with_retry(term, syns)
@@ -176,7 +176,7 @@ async def run_medical_pipeline(
                      i, len(articles), art.pmid, len(text))
             art_t0 = time.monotonic()
             try:
-                g = await extract_graph_from_article(text, model_id, glossary)
+                g = await extract_graph_from_article(text, model_key, glossary)
             except Exception as e:
                 log.warning("[pipeline] step5 [%d/%d] PMID=%s FAILED after %.1fs: %s",
                             i, len(articles), art.pmid, time.monotonic() - art_t0, e)
@@ -235,7 +235,7 @@ async def run_medical_pipeline(
     yield PipelineStepEvent(step="translate_en_pt", status="running")
     t0 = time.monotonic()
     justification_en = compose_justification_en(question_graph, verdict, aggregate, articles)
-    stage7 = await translate_en_to_pt(justification_en, model_id)
+    stage7 = await translate_en_to_pt(justification_en, model_key)
     log.info("[pipeline] step7 translate_en_pt done in %.1fs → %r",
              time.monotonic() - t0, stage7.output[:80])
     log.info("[pipeline] step7 translate_en_pt JSON output:\n%s",

@@ -1,18 +1,34 @@
 # MedGraph Chat
 
-Interface conversacional baseada em LangChain + Ollama, com agente avaliador
-acionado via tool calling. Backend FastAPI expondo SSE, frontend React/Vite
-baseado no Claude Design (em `frontend/_design-reference/`).
+Interface conversacional baseada em LangChain, com agente avaliador acionado via
+tool calling. O provedor de LLM é intercambiável: modelos locais via **Ollama**
+(`qwen`, `llama`), da **OpenAI** (`gpt-5.4-mini`, `gpt-5.4`) ou da **Anthropic**
+(`claude-sonnet-4-6`, `claude-haiku-4-5`). Backend FastAPI expondo SSE, frontend
+React/Vite baseado no Claude Design (em `frontend/_design-reference/`).
+
+Os modelos disponíveis ficam num registro central em `backend/llm.py`
+(`MODEL_REGISTRY`); o provedor é inferido por modelo.
 
 ## Pré-requisitos
 
-### Ollama + modelos
+### Ollama + modelos (para os modelos locais)
 ```bash
 curl -fsSL https://ollama.com/install.sh | sh
 ollama pull qwen3:8b
 ollama pull llama3.1:8b
 ```
 Verifique: `curl http://localhost:11434/api/tags` deve listar os dois modelos.
+
+### OpenAI / Anthropic (para os modelos de nuvem)
+```bash
+cd chat
+cp .env.example .env
+# edite .env e preencha as chaves dos provedores que for usar:
+#   OPENAI_API_KEY=sk-...       (gpt-5.4-mini, gpt-5.4)
+#   ANTHROPIC_API_KEY=sk-ant-...(claude-sonnet-4-6, claude-haiku-4-5)
+```
+O `.env` não é commitado. Cada chave só é exigida quando um modelo do respectivo
+provedor é selecionado — quem usa só Ollama pode ignorar este passo.
 
 ### Python venv + dependências
 ```bash
@@ -54,18 +70,21 @@ cd chat
 .venv/bin/python chat.py
 ```
 
-Comandos: `/model qwen | /model llama | /quit`.
+Comandos: `/model qwen | /model llama | /model gpt-5.4-mini | /model gpt-5.4 | /quit`.
 
 ## Arquitetura
 
 ```
-frontend/ (React+Vite)   ◄── HTTP+SSE ──►   backend/ (FastAPI)   ◄──►   Ollama
+frontend/ (React+Vite)   ◄── HTTP+SSE ──►   backend/ (FastAPI)   ◄──►   Ollama / OpenAI / Anthropic
+                                            └─ llm.py (MODEL_REGISTRY + factory)
                                             └─ agent.py (run_agent_stream)
                                             └─ tools.py (@tool avaliador)
 ```
 
 ### Backend
 - `backend/main.py` — FastAPI: `GET /models`, `POST /chat` (SSE)
+- `backend/llm.py` — registro de modelos + `build_chat_model` (Ollama/OpenAI)
+- `backend/config.py` — settings via `.env` (`OPENAI_API_KEY`)
 - `backend/agent.py` — agente: `bind_tools` + loop async streaming
 - `backend/tools.py` — `@tool avaliador` (um sub-LLM com system prompt restringindo
   a resposta a `Confirmado | Refutado | Sem relação | Indefinido`)
@@ -86,7 +105,7 @@ frontend/ (React+Vite)   ◄── HTTP+SSE ──►   backend/ (FastAPI)   ◄
 
 | Camada | Lib |
 |---|---|
-| LLM runtime | Ollama (qwen3:8b, llama3.1:8b) |
-| LLM SDK | `langchain-ollama` + `langchain-core` |
+| LLM runtime | Ollama (qwen3:8b, llama3.1:8b) · OpenAI (gpt-5.4-mini, gpt-5.4) · Anthropic (claude-sonnet-4-6, claude-haiku-4-5) |
+| LLM SDK | `langchain-ollama` + `langchain-openai` + `langchain-anthropic` + `langchain-core` |
 | Backend | FastAPI + Uvicorn + `sse-starlette` |
 | Frontend | React 18 + Vite + TypeScript |
