@@ -1,6 +1,8 @@
 import asyncio
 import time
 
+from ..config import get_settings
+
 
 class AsyncRateLimiter:
     """Garante intervalo mínimo entre chamadas async sequenciais."""
@@ -19,4 +21,6 @@ class AsyncRateLimiter:
             self._last_call = time.monotonic()
 
 
-ncbi_limiter = AsyncRateLimiter(min_interval_s=0.35)
+# Sem api_key a NCBI limita a 3 req/s (~0.34s); com api_key sobe para 10 req/s.
+_interval = 0.11 if get_settings().ncbi_api_key else 0.34
+ncbi_limiter = AsyncRateLimiter(min_interval_s=_interval)

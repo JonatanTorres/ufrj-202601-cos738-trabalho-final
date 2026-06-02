@@ -1,15 +1,47 @@
+import asyncio
+import logging
 import time
 import xml.etree.ElementTree as ET
 from urllib.parse import urlencode
 
 import httpx
 
+from ..config import get_settings
 from .cache import ncbi_cache
 from .models import MeshLookup, PubmedArticle
 from .rate_limit import ncbi_limiter
 
+log = logging.getLogger("medgraph.ncbi")
+
 EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 TIMEOUT = httpx.Timeout(10.0, connect=5.0)
+
+# A NCBI devolve 429 quando estoura o limite de req/s; 5xx são instáveis.
+# Em ambos os casos vale repetir com backoff exponencial.
+_RETRYABLE_STATUS = {429, 500, 502, 503, 504}
+_MAX_ATTEMPTS = 4
+
+
+def _common_params() -> dict[str, str]:
+    """Parâmetros de etiqueta/credencial da NCBI anexados a toda requisição.
+    A `api_key` (quando presente) eleva o limite de 3→10 req/s."""
+    s = get_settings()
+    params = {"tool": s.ncbi_tool}
+    if s.ncbi_email:
+        params["email"] = s.ncbi_email
+    if s.ncbi_api_key:
+        params["api_key"] = s.ncbi_api_key
+    return params
+
+
+def _augment(url: str) -> str:
+    """Anexa os parâmetros comuns à URL (mantidos fora da chave de cache para
+    não vazar a api_key no cache)."""
+    extra = _common_params()
+    if not extra:
+        return url
+    sep = "&" if "?" in url else "?"
+    return url + sep + urlencode(extra)
 
 
 def _design_from_pubtypes(pubtypes: list[str]) -> str | None:
@@ -48,28 +80,37 @@ def _weight_for_design(design: str | None) -> float:
     }.get(design or "", 1)
 
 
-async def _get_json(client: httpx.AsyncClient, url: str) -> dict:
+async def _get(client: httpx.AsyncClient, url: str, *, as_json: bool):
+    """GET com rate-limit, cache (chave = `url` sem credenciais) e retry com
+    backoff exponencial em 429/5xx. Levanta a última exceção HTTP se esgotar."""
     cached = await ncbi_cache.get(url)
     if cached is not None:
         return cached
-    await ncbi_limiter.acquire()
-    r = await client.get(url)
+    full = _augment(url)
+    endpoint = url.split("?", 1)[0].rsplit("/", 1)[-1]
+    for attempt in range(1, _MAX_ATTEMPTS + 1):
+        await ncbi_limiter.acquire()
+        r = await client.get(full)
+        if r.status_code in _RETRYABLE_STATUS and attempt < _MAX_ATTEMPTS:
+            backoff = 0.5 * (2 ** (attempt - 1))
+            log.warning("[ncbi] %s em %s (tentativa %d/%d) — retry em %.1fs",
+                        r.status_code, endpoint, attempt, _MAX_ATTEMPTS, backoff)
+            await asyncio.sleep(backoff)
+            continue
+        r.raise_for_status()
+        result = r.json() if as_json else r.text
+        await ncbi_cache.set(url, result)
+        return result
+    # Esgotou as tentativas ainda em status retryable: levanta o erro HTTP.
     r.raise_for_status()
-    data = r.json()
-    await ncbi_cache.set(url, data)
-    return data
+
+
+async def _get_json(client: httpx.AsyncClient, url: str) -> dict:
+    return await _get(client, url, as_json=True)
 
 
 async def _get_text(client: httpx.AsyncClient, url: str) -> str:
-    cached = await ncbi_cache.get(url)
-    if cached is not None:
-        return cached
-    await ncbi_limiter.acquire()
-    r = await client.get(url)
-    r.raise_for_status()
-    text = r.text
-    await ncbi_cache.set(url, text)
-    return text
+    return await _get(client, url, as_json=False)
 
 
 async def _esearch_mesh(client: httpx.AsyncClient, query: str) -> tuple[list[str], int, str]:
@@ -173,7 +214,8 @@ async def pubmed_search(query: str, retmax: int = 5) -> tuple[list[str], int]:
             ids = esearch.get("idlist") or []
             total = int(esearch.get("count", 0) or 0)
             return ids, total
-    except (httpx.HTTPError, ValueError, KeyError):
+    except (httpx.HTTPError, ValueError, KeyError) as e:
+        log.warning("[ncbi] pubmed_search falhou (query=%r): %s", query, e)
         return [], 0
 
 
@@ -188,7 +230,8 @@ async def pubmed_fetch(pmids: list[str]) -> list[PubmedArticle]:
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             xml_text = await _get_text(client, url)
-    except httpx.HTTPError:
+    except httpx.HTTPError as e:
+        log.warning("[ncbi] pubmed_fetch falhou (%d pmids): %s", len(pmids), e)
         return []
 
     articles: list[PubmedArticle] = []

@@ -15,6 +15,12 @@ class Settings(BaseSettings):
     openai_api_key: str | None = None     # OPENAI_API_KEY
     anthropic_api_key: str | None = None  # ANTHROPIC_API_KEY
 
+    # NCBI E-utilities: a api_key sobe o limite de 3→10 req/s e reduz 429s.
+    # tool/email são apenas etiqueta recomendada pela NCBI.
+    ncbi_api_key: str | None = None       # NCBI_API_KEY
+    ncbi_email: str | None = None         # NCBI_EMAIL
+    ncbi_tool: str = "medgraph"           # NCBI_TOOL
+
 
 @lru_cache
 def get_settings() -> Settings:

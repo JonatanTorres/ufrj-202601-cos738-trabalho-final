@@ -30,6 +30,12 @@ cp .env.example .env
 O `.env` não é commitado. Cada chave só é exigida quando um modelo do respectivo
 provedor é selecionado — quem usa só Ollama pode ignorar este passo.
 
+Opcionalmente, defina `NCBI_API_KEY` (e `NCBI_EMAIL`) no mesmo `.env`: a busca da
+PubMed (etapa 4) usa a NCBI E-utilities, que sem chave limita a 3 req/s e
+frequentemente devolve `429 Too Many Requests`. A chave eleva o limite para 10
+req/s. Mesmo sem ela há retry com backoff, mas a chave deixa o pipeline mais
+estável. Crie em https://www.ncbi.nlm.nih.gov/account/.
+
 ### Python venv + dependências
 ```bash
 cd chat
