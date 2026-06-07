@@ -10,7 +10,13 @@ interface Props {
   onModelChange: (m: ModelKey) => void;
 }
 
-export function Composer({ disabled, onSend, models, model, onModelChange }: Props) {
+export function Composer({
+  disabled,
+  onSend,
+  models,
+  model,
+  onModelChange,
+}: Props) {
   const [val, setVal] = useState("");
   const taRef = useRef<HTMLTextAreaElement>(null);
 
@@ -35,7 +41,7 @@ export function Composer({ disabled, onSend, models, model, onModelChange }: Pro
           ref={taRef}
           rows={1}
           value={val}
-          placeholder="Pergunte ou afirme algo: ex. 'A Terra orbita o Sol'"
+          placeholder="Digite uma hipótese clínica: ex. 'Metformina trata diabetes tipo 2?'"
           onChange={(e) => {
             setVal(e.target.value);
             const t = e.target;
@@ -51,12 +57,20 @@ export function Composer({ disabled, onSend, models, model, onModelChange }: Pro
         />
         <div className="composer-toolbar">
           <div className="composer-toolbar-left">
-            <ModelPicker models={models} value={model} onChange={onModelChange} />
+            <ModelPicker
+              models={models}
+              value={model}
+              onChange={onModelChange}
+            />
             <span className="composer-hint mono">
               <kbd>↵</kbd> enviar · <kbd>⇧↵</kbd> nova linha
             </span>
           </div>
-          <button type="submit" className="send-btn mono" disabled={!val.trim() || disabled}>
+          <button
+            type="submit"
+            className="send-btn mono"
+            disabled={!val.trim() || disabled}
+          >
             ANALISAR →
           </button>
         </div>
