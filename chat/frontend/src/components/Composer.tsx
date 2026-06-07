@@ -1,11 +1,16 @@
 import { useRef, useState } from "react";
+import type { ModelInfo, ModelKey } from "../types";
+import { ModelPicker } from "./ModelPicker";
 
 interface Props {
   disabled: boolean;
   onSend: (text: string) => void;
+  models: ModelInfo[];
+  model: ModelKey;
+  onModelChange: (m: ModelKey) => void;
 }
 
-export function Composer({ disabled, onSend }: Props) {
+export function Composer({ disabled, onSend, models, model, onModelChange }: Props) {
   const [val, setVal] = useState("");
   const taRef = useRef<HTMLTextAreaElement>(null);
 
@@ -45,8 +50,11 @@ export function Composer({ disabled, onSend }: Props) {
           }}
         />
         <div className="composer-toolbar">
-          <div className="composer-hint mono">
-            <kbd>↵</kbd> enviar · <kbd>⇧↵</kbd> nova linha
+          <div className="composer-toolbar-left">
+            <ModelPicker models={models} value={model} onChange={onModelChange} />
+            <span className="composer-hint mono">
+              <kbd>↵</kbd> enviar · <kbd>⇧↵</kbd> nova linha
+            </span>
           </div>
           <button type="submit" className="send-btn mono" disabled={!val.trim() || disabled}>
             ANALISAR →

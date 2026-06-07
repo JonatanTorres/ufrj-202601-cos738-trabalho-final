@@ -12,8 +12,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    openai_api_key: str | None = None     # OPENAI_API_KEY
-    anthropic_api_key: str | None = None  # ANTHROPIC_API_KEY
+    openai_api_key: str | None = None            # OPENAI_API_KEY
+    azure_openai_api_key: str | None = None      # AZURE_OPENAI_API_KEY
+    azure_openai_endpoint: str | None = None     # AZURE_OPENAI_ENDPOINT
+    azure_openai_api_version: str = "2024-02-01" # AZURE_OPENAI_API_VERSION
+    anthropic_api_key: str | None = None         # ANTHROPIC_API_KEY
 
     # NCBI E-utilities: a api_key sobe o limite de 3→10 req/s e reduz 429s.
     # tool/email são apenas etiqueta recomendada pela NCBI.

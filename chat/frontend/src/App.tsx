@@ -179,7 +179,7 @@ export default function App() {
         onToggle={() => setSidebarCollapsed(c => !c)}
       />
       <main className="main">
-        <Topbar sessionId={activeThread} models={models} model={model} onModelChange={setModel} />
+        <Topbar sessionId={activeThread} />
 
         {activePipeline && (
           <PipelineStrip
@@ -215,7 +215,7 @@ export default function App() {
           )}
         </div>
 
-        <Composer onSend={send} disabled={pending} />
+        <Composer onSend={send} disabled={pending} models={models} model={model} onModelChange={setModel} />
       </main>
 
       {activeStep && (() => {

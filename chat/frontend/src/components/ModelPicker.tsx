@@ -8,19 +8,17 @@ interface Props {
 
 export function ModelPicker({ models, value, onChange }: Props) {
   return (
-    <div className="model-picker" role="tablist">
+    <select
+      className="model-select mono"
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      aria-label="Selecionar modelo"
+    >
       {models.map(m => (
-        <button
-          key={m.key}
-          className={"model-btn" + (value === m.key ? " active" : "")}
-          onClick={() => onChange(m.key)}
-          role="tab"
-          aria-selected={value === m.key}
-          title={`${m.label} · ${m.provider}`}
-        >
+        <option key={m.key} value={m.key} title={m.provider}>
           {m.label || m.key}
-        </button>
+        </option>
       ))}
-    </div>
+    </select>
   );
 }

@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel
 from langchain_ollama import ChatOllama
-from langchain_openai import ChatOpenAI
+from langchain_openai import AzureChatOpenAI, ChatOpenAI
 
 from .config import get_settings
 
@@ -25,12 +25,14 @@ class ModelSpec:
 
 
 MODEL_REGISTRY: dict[str, ModelSpec] = {
-    "qwen":              ModelSpec("qwen",              "ollama",    "qwen3:8b",                  "Qwen 3 8B",       {"reasoning": False}),
-    "llama":             ModelSpec("llama",             "ollama",    "llama3.1:8b",               "Llama 3.1 8B",    {"reasoning": False}),
-    "gpt-5.4-mini":      ModelSpec("gpt-5.4-mini",      "openai",    "gpt-5.4-mini",              "GPT-5.4 mini",    {}),
-    "gpt-5.4":           ModelSpec("gpt-5.4",           "openai",    "gpt-5.4",                   "GPT-5.4",         {}),
-    "claude-sonnet-4-6": ModelSpec("claude-sonnet-4-6", "anthropic", "claude-sonnet-4-6",         "Claude Sonnet 4.6", {"max_tokens": 4096}),
-    "claude-haiku-4-5":  ModelSpec("claude-haiku-4-5",  "anthropic", "claude-haiku-4-5-20251001", "Claude Haiku 4.5",  {"max_tokens": 4096}),
+    "qwen":                   ModelSpec("qwen",                   "ollama",    "qwen3:8b",                  "Qwen 3 8B",          {"reasoning": False}),
+    "llama":                  ModelSpec("llama",                  "ollama",    "llama3.1:8b",               "Llama 3.1 8B",       {"reasoning": False}),
+    "gpt-5.4-mini":           ModelSpec("gpt-5.4-mini",           "openai",    "gpt-5.4-mini",              "GPT-5.4 mini",       {}),
+    "gpt-5.4":                ModelSpec("gpt-5.4",                "openai",    "gpt-5.4",                   "GPT-5.4",            {}),
+    "azure-gpt-5.4-mini":     ModelSpec("azure-gpt-5.4-mini",     "azure",     "gpt-5.4-mini",              "GPT-5.4 mini (Az)",  {}),
+    "azure-gpt-5.4":          ModelSpec("azure-gpt-5.4",          "azure",     "gpt-5.4",                   "GPT-5.4 (Az)",       {}),
+    "claude-sonnet-4-6":      ModelSpec("claude-sonnet-4-6",      "anthropic", "claude-sonnet-4-6",         "Claude Sonnet 4.6",  {"max_tokens": 4096}),
+    "claude-haiku-4-5":       ModelSpec("claude-haiku-4-5",       "anthropic", "claude-haiku-4-5-20251001", "Claude Haiku 4.5",   {"max_tokens": 4096}),
 }
 DEFAULT_MODEL = "qwen"
 
@@ -51,6 +53,20 @@ def build_chat_model(model_key: str) -> BaseChatModel:
                 f"Modelo '{model_key}' requer OpenAI, mas OPENAI_API_KEY não está definida."
             )
         return ChatOpenAI(model=spec.model, api_key=api_key, **spec.params)
+    if spec.provider == "azure":
+        s = get_settings()
+        if not s.azure_openai_api_key or not s.azure_openai_endpoint:
+            raise RuntimeError(
+                f"Modelo '{model_key}' requer Azure OpenAI, mas AZURE_OPENAI_API_KEY ou "
+                "AZURE_OPENAI_ENDPOINT não estão definidas."
+            )
+        return AzureChatOpenAI(
+            azure_deployment=spec.model,
+            azure_endpoint=s.azure_openai_endpoint,
+            api_version=s.azure_openai_api_version,
+            api_key=s.azure_openai_api_key,
+            **spec.params,
+        )
     if spec.provider == "anthropic":
         api_key = get_settings().anthropic_api_key
         if not api_key:

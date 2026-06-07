@@ -531,28 +531,23 @@ button { font-family: inherit; }
 .send-btn:not(:disabled):hover { background: #1c1c1c; }
 
 /* --- Model picker --- */
-.model-picker {
-  display: flex;
+.model-select {
   background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 6px;
-  padding: 2px;
-  gap: 2px;
-}
-.model-btn {
-  background: transparent;
-  border: none;
-  padding: 4px 10px;
+  padding: 4px 8px;
   font-size: 11px;
-  border-radius: 4px;
-  cursor: pointer;
-  color: var(--muted);
+  color: var(--ink);
   letter-spacing: 0.04em;
-  font-family: var(--mono);
+  cursor: pointer;
+  outline: none;
 }
-.model-btn.active {
-  background: var(--ink);
-  color: var(--accent);
+.model-select:focus { border-color: var(--ink); }
+
+.composer-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 /* --- Graph card --- */
