@@ -1,0 +1,61 @@
+model,question,answer,time_s
+haiku,A sinvastatina é usada para tratar o colesterol alto?,Verdadeiro,1.21
+haiku,A amoxicilina é eficaz no tratamento da gripe?,Falso,0.63
+haiku,A metformina é indicada para o tratamento do diabetes tipo 2?,Verdadeiro,0.64
+haiku,O omeprazol é usado para tratar a depressão?,Falso,0.62
+haiku,A levotiroxina trata o hipotireoidismo?,Verdadeiro,0.61
+haiku,A insulina é indicada para tratar a hipertensão?,Falso,0.92
+haiku,A fluoxetina é usada para tratar o diabetes?,Falso,0.65
+haiku,O captopril é usado no tratamento da hipertensão?,Verdadeiro,0.6
+haiku,A sertralina é indicada para tratar a hipertensão?,Falso,0.65
+haiku,O alopurinol é usado no tratamento da gota?,Verdadeiro,0.66
+haiku,O alopurinol é indicado para tratar a hipertensão?,Falso,0.63
+haiku,O diazepam é indicado para tratar infecções bacterianas?,Falso,0.72
+haiku,A loratadina é usada no tratamento de alergias?,Verdadeiro,0.6
+haiku,A levotiroxina é usada para tratar a asma?,Falso,3.43
+haiku,A varfarina é usada para prevenir tromboses?,Verdadeiro,0.62
+haiku,A varfarina é usada para tratar o colesterol alto?,Falso,0.63
+haiku,A ivermectina é usada para tratar infecções por parasitas?,Verdadeiro,0.72
+haiku,A ivermectina é eficaz no tratamento da COVID-19?,Falso,0.96
+haiku,A hidroxicloroquina cura a COVID-19?,Falso,0.62
+haiku,O metotrexato é utilizado no tratamento da artrite reumatoide?,Verdadeiro,0.57
+haiku,O paracetamol previne o câncer?,Falso,0.83
+haiku,O ácido acetilsalicílico (AAS) é usado para prevenir o infarto em pacientes de risco?,Verdadeiro,1.57
+haiku,O uso prolongado de prednisona pode causar osteoporose?,Verdadeiro,0.73
+haiku,A amoxicilina causa hipertensão?,Falso,0.6
+haiku,O paracetamol em doses elevadas pode causar lesão no fígado?,Verdadeiro,0.54
+haiku,A metformina causa hipotireoidismo?,Falso,0.19
+haiku,O uso de ibuprofeno pode causar úlcera gástrica?,Verdadeiro,0.67
+haiku,A sinvastatina pode causar dores musculares?,Verdadeiro,0.68
+haiku,A furosemida pode causar perda de potássio (hipocalemia)?,Verdadeiro,0.56
+haiku,A loratadina causa diabetes?,Falso,2.0
+sonnet,A sinvastatina é usada para tratar o colesterol alto?,**Verdadeiro**,1.11
+sonnet,A amoxicilina é eficaz no tratamento da gripe?,**Falso**,1.22
+sonnet,A metformina é indicada para o tratamento do diabetes tipo 2?,**Verdadeiro**,1.24
+sonnet,O omeprazol é usado para tratar a depressão?,**Falso**,1.18
+sonnet,A levotiroxina trata o hipotireoidismo?,Verdadeiro,1.23
+sonnet,A insulina é indicada para tratar a hipertensão?,**Falso**,1.11
+sonnet,A fluoxetina é usada para tratar o diabetes?,**Falso**,1.07
+sonnet,O captopril é usado no tratamento da hipertensão?,**Verdadeiro**,1.21
+sonnet,A sertralina é indicada para tratar a hipertensão?,**Falso**,1.14
+sonnet,O alopurinol é usado no tratamento da gota?,**Verdadeiro**,2.54
+sonnet,O alopurinol é indicado para tratar a hipertensão?,**Falso**,1.16
+sonnet,O diazepam é indicado para tratar infecções bacterianas?,**Falso**,1.19
+sonnet,A loratadina é usada no tratamento de alergias?,**Verdadeiro**,1.04
+sonnet,A levotiroxina é usada para tratar a asma?,Falso,1.31
+sonnet,A varfarina é usada para prevenir tromboses?,**Verdadeiro**,1.28
+sonnet,A varfarina é usada para tratar o colesterol alto?,Falso,1.99
+sonnet,A ivermectina é usada para tratar infecções por parasitas?,**Verdadeiro**,1.09
+sonnet,A ivermectina é eficaz no tratamento da COVID-19?,**Falso**,1.64
+sonnet,A hidroxicloroquina cura a COVID-19?,**Falso**,1.29
+sonnet,O metotrexato é utilizado no tratamento da artrite reumatoide?,**Verdadeiro**,1.2
+sonnet,O paracetamol previne o câncer?,**Falso**,1.24
+sonnet,O ácido acetilsalicílico (AAS) é usado para prevenir o infarto em pacientes de risco?,**Verdadeiro**,1.09
+sonnet,O uso prolongado de prednisona pode causar osteoporose?,**Verdadeiro**,1.11
+sonnet,A amoxicilina causa hipertensão?,**Falso**,1.05
+sonnet,O paracetamol em doses elevadas pode causar lesão no fígado?,**Verdadeiro**,1.02
+sonnet,A metformina causa hipotireoidismo?,**Falso**,1.26
+sonnet,O uso de ibuprofeno pode causar úlcera gástrica?,**Verdadeiro**,1.14
+sonnet,A sinvastatina pode causar dores musculares?,**Verdadeiro**,1.72
+sonnet,A furosemida pode causar perda de potássio (hipocalemia)?,**Verdadeiro**,1.16
+sonnet,A loratadina causa diabetes?,**Falso**,1.12
