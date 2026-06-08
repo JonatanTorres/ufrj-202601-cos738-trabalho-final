@@ -4,6 +4,7 @@ from typing import AsyncIterator
 
 from . import ncbi
 from .extractor import (
+    build_alias_map,
     build_glossary_dict,
     english_synonyms,
     extract_graph_from_article,
@@ -127,6 +128,10 @@ async def run_medical_pipeline(
         payload=mesh_payload.model_dump(),
     )
 
+    alias_map, node_synonyms = build_alias_map(question_graph, lookups, stage1.glossary)
+    log.info("[pipeline] alias_map (variante→canônico): %s", alias_map)
+    log.info("[pipeline] node_synonyms (canônico→labels): %s", node_synonyms)
+
     yield PipelineStepEvent(step="pubmed_search", status="running")
     t0 = time.monotonic()
     target_articles = 5
@@ -186,7 +191,9 @@ async def run_medical_pipeline(
                      len(g.nodes), len(g.edges))
             article_graphs.append((art.pmid, g))
         try:
-            partial = aggregate_graphs(question_graph, article_graphs)
+            partial = aggregate_graphs(
+                question_graph, article_graphs, alias_map, node_synonyms
+            )
         except Exception as e:
             log.warning("[pipeline] step5 aggregate FAILED: %s", e)
             continue
@@ -202,7 +209,9 @@ async def run_medical_pipeline(
                 },
             },
         )
-    aggregate = aggregate_graphs(question_graph, article_graphs)
+    aggregate = aggregate_graphs(
+        question_graph, article_graphs, alias_map, node_synonyms
+    )
     log.info("[pipeline] step5 extract_articles done in %.1fs → %d article graphs, %d aggregate edges",
              time.monotonic() - t0, len(article_graphs), len(aggregate.edges))
     log.info("[pipeline] step5 extract_articles JSON output:\n%s",

@@ -42,6 +42,7 @@ export function MGGraph({
 }: Props) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [, setTick] = useState(0);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const stateRef = useRef<{ nodes: SimNode[]; edges: GraphEdge[] }>({ nodes: [], edges: [] });
 
   useEffect(() => {
@@ -325,6 +326,8 @@ export function MGGraph({
               opacity={d ? 0.2 : 1}
               style={{ cursor: "pointer" }}
               onPointerDown={(e) => onPointerDown(e, n)}
+              onPointerEnter={() => setHoveredId(n.id)}
+              onPointerLeave={() => setHoveredId(prev => (prev === n.id ? null : prev))}
               onClick={() => onSelect && onSelect(n.id)}
             >
               {sel && (
@@ -357,10 +360,50 @@ export function MGGraph({
                   {n.sub}
                 </text>
               )}
+              {n.aliases && n.aliases.length > 0 && (
+                <text
+                  textAnchor="middle"
+                  dy={n.size + (n.sub ? 38 : 26)}
+                  fontSize="9"
+                  fontFamily="JetBrains Mono, monospace"
+                  fill="#6b7280"
+                >
+                  ≡ {n.aliases.length} sinônimo{n.aliases.length > 1 ? "s" : ""}
+                </text>
+              )}
             </g>
           );
         })}
       </g>
+
+      {(() => {
+        const tipId = hoveredId ?? selectedId;
+        if (!tipId) return null;
+        const n = nodes.find(nn => nn.id === tipId);
+        if (!n || !n.aliases || n.aliases.length === 0) return null;
+        const items = n.aliases;
+        const charW = 6.3;
+        const padX = 10, padY = 8, lineH = 15, headH = 18;
+        const longest = items.reduce((m, s) => Math.max(m, s.length), "SINÔNIMOS".length);
+        const boxW = Math.min(280, Math.round(longest * charW) + padX * 2);
+        const boxH = headH + items.length * lineH + padY * 2;
+        let bx = n.x + n.size + 12;
+        let by = n.y - boxH / 2;
+        if (bx + boxW > width) bx = n.x - n.size - 12 - boxW;
+        bx = Math.max(4, Math.min(bx, width - boxW - 4));
+        by = Math.max(4, Math.min(by, height - boxH - 4));
+        return (
+          <g transform={`translate(${bx},${by})`} pointerEvents="none">
+            <rect x="0" y="0" width={boxW} height={boxH} rx="6" fill="#0a0a0a" opacity="0.92" />
+            <text x={padX} y={padY + 9} fontSize="9" fontFamily="JetBrains Mono, monospace"
+              fill="#c6ff3d" letterSpacing="0.1em">SINÔNIMOS</text>
+            {items.map((s, i) => (
+              <text key={i} x={padX} y={padY + headH + i * lineH + 2}
+                fontSize="10" fontFamily="JetBrains Mono, monospace" fill="#fafaf6">{s}</text>
+            ))}
+          </g>
+        );
+      })()}
     </svg>
   );
 }

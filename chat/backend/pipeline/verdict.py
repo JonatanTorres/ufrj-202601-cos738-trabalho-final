@@ -17,18 +17,53 @@ from .models import (
 def aggregate_graphs(
     question_graph: GraphPayload,
     article_graphs: list[tuple[str, GraphPayload]],
+    alias_map: dict[str, str] | None = None,
+    node_synonyms: dict[str, list[str]] | None = None,
 ) -> AggregateStagePayload:
     """Combina o grafo da pergunta com grafos dos artigos.
 
     Para cada aresta da pergunta, busca a mesma (s,t) nos grafos dos artigos.
     Tipo igual → supports=True; tipo diferente → supports=False; ausente → abstenção.
+
+    `alias_map` (id_variante → id_canônico) e `node_synonyms` (id_canônico → labels)
+    vêm de `build_alias_map` e permitem colapsar sinônimos: um nó de artigo cujo id é
+    um alias de uma entidade da pergunta é tratado como essa entidade no match, e suas
+    formas são registradas em `node.aliases` para exibição.
     """
+    alias_map = alias_map or {}
+    node_synonyms = node_synonyms or {}
+
+    def canon(node_id: str) -> str:
+        return alias_map.get(node_id, node_id)
+
+    # aliases acumulados por id canônico (sinônimos vindos do glossário/MeSH +
+    # labels de nós de artigo que foram colapsados).
+    collected_aliases: dict[str, list[str]] = {}
+
+    def add_alias_label(canonical: str, label: str) -> None:
+        # minúsculo para não diferenciar 'simvastatin' de 'Simvastatin'
+        label = (label or "").strip().lower()
+        if not label:
+            return
+        bucket = collected_aliases.setdefault(canonical, [])
+        if label not in bucket:
+            bucket.append(label)
+
     nodes_by_id: OrderedDict[str, GraphNode] = OrderedDict()
     for n in question_graph.nodes:
-        nodes_by_id[n.id] = n
+        nodes_by_id[n.id] = n.model_copy(deep=True)
+        for syn in node_synonyms.get(n.id, []):
+            add_alias_label(n.id, syn)
     for _pmid, g in article_graphs:
         for n in g.nodes:
-            nodes_by_id.setdefault(n.id, n)
+            cid = canon(n.id)
+            if cid != n.id:
+                add_alias_label(cid, n.label)
+                for syn in node_synonyms.get(cid, []):
+                    add_alias_label(cid, syn)
+            nodes_by_id.setdefault(
+                cid, n.model_copy(deep=True, update={"id": cid})
+            )
 
     edges_out: list[EdgeWithArticles] = []
     question_edge_keys: set[tuple[str, str]] = set()
@@ -38,7 +73,10 @@ def aggregate_graphs(
         question_edge_keys.add(key)
         votes: list[ArticleVote] = []
         for pmid, g in article_graphs:
-            match = next((e for e in g.edges if e.s == qe.s and e.t == qe.t), None)
+            match = next(
+                (e for e in g.edges if canon(e.s) == qe.s and canon(e.t) == qe.t),
+                None,
+            )
             if match is None:
                 continue
             votes.append(ArticleVote(pmid=pmid, type=match.type))
@@ -47,19 +85,27 @@ def aggregate_graphs(
     extra_edges: dict[tuple[str, str, str], list[ArticleVote]] = {}
     for pmid, g in article_graphs:
         for e in g.edges:
-            key = (e.s, e.t)
+            s, t = canon(e.s), canon(e.t)
+            key = (s, t)
             if key in question_edge_keys:
                 continue
-            if e.s not in nodes_by_id or e.t not in nodes_by_id:
+            if s not in nodes_by_id or t not in nodes_by_id:
                 continue
-            k = (e.s, e.t, e.type)
+            k = (s, t, e.type)
             extra_edges.setdefault(k, []).append(ArticleVote(pmid=pmid, type=e.type))
 
     for (s, t, typ), votes in list(extra_edges.items())[:6]:
         edges_out.append(EdgeWithArticles(s=s, t=t, type=typ, articles=votes))
 
+    nodes_out = list(nodes_by_id.values())
+    for node in nodes_out:
+        label_norm = node.label.strip().lower()
+        node.aliases = [
+            a for a in collected_aliases.get(node.id, []) if a != label_norm
+        ]
+
     return AggregateStagePayload(
-        nodes=list(nodes_by_id.values()),
+        nodes=nodes_out,
         edges=edges_out,
     )
 

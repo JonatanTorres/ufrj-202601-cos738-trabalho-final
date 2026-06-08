@@ -28,6 +28,7 @@ class GraphNode(BaseModel):
     label: str
     type: NodeType
     size: int = 24
+    aliases: list[str] = Field(default_factory=list)
 
 
 class GraphEdge(BaseModel):

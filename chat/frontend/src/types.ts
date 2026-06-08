@@ -23,6 +23,7 @@ export interface GraphNode {
   label: string;
   type: NodeType;
   size: number;
+  aliases?: string[];
   sub?: string;
   x?: number;
   y?: number;

@@ -797,6 +797,16 @@ button { font-family: inherit; }
   letter-spacing: 0.12em;
   margin-top: 4px;
 }
+.node-synonyms { display: flex; flex-direction: column; gap: 8px; }
+.synonym-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.synonym-chip {
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 3px 8px;
+}
 .edges-list { display: flex; flex-direction: column; gap: 6px; }
 .edge-row {
   display: grid;

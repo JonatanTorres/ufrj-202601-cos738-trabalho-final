@@ -6,7 +6,14 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from ..llm import build_chat_model
 from .llm_schemas import LLMExtractorResult, LLMSynonyms
-from .models import EdgeType, GlossaryEntry, GraphEdge, GraphNode, GraphPayload
+from .models import (
+    EdgeType,
+    GlossaryEntry,
+    GraphEdge,
+    GraphNode,
+    GraphPayload,
+    MeshLookup,
+)
 from .prompts import (
     ARTICLE_EXTRACTOR_TEMPLATE,
     QUESTION_EXTRACTOR_TEMPLATE,
@@ -43,6 +50,65 @@ def build_glossary_dict(entries: list[GlossaryEntry]) -> dict[str, str]:
             continue
         out.setdefault(key, entry.term_pt.strip())
     return out
+
+
+def build_alias_map(
+    question_graph: GraphPayload,
+    lookups: list[MeshLookup],
+    glossary_entries: list[GlossaryEntry],
+) -> tuple[dict[str, str], dict[str, list[str]]]:
+    """Monta os aliases de cada entidade da pergunta reaproveitando os sinônimos que
+    o pipeline já produziu: o glossário PT↔EN da tradução (etapa 1) e o mapeamento
+    MeSH (etapas 2/3). Serve para colapsar, na etapa de Match, nós que são o mesmo
+    conceito sob nomes diferentes (ex.: 'high_cholesterol' e 'hypercholesterolemia').
+
+    Retorna:
+    - alias_map: id_variante_normalizado → id_canônico (id do nó da pergunta).
+    - node_synonyms: id_canônico → labels legíveis, para exibição no frontend.
+
+    O id canônico é sempre um `node.id` da pergunta; variantes que já são canônicas de
+    OUTRO nó nunca viram alias (evita fundir entidades distintas).
+    """
+    canon_ids = {n.id for n in question_graph.nodes}
+    alias_map: dict[str, str] = {}
+    node_synonyms: dict[str, list[str]] = {n.id: [] for n in question_graph.nodes}
+
+    def add_alias(variant: str, canonical: str) -> None:
+        v = _norm_id(variant)
+        if not v or v == canonical or v in canon_ids:
+            return
+        alias_map.setdefault(v, canonical)
+
+    def add_synonym(canonical: str, label: str) -> None:
+        label = (label or "").strip()
+        if not label or canonical not in node_synonyms:
+            return
+        if label not in node_synonyms[canonical]:
+            node_synonyms[canonical].append(label)
+
+    # Glossário (etapa 1): cada par PT↔EN dá duas formas do mesmo conceito.
+    for entry in glossary_entries:
+        en = _norm_id(entry.term_en)
+        pt = _norm_id(entry.term_pt)
+        target = en if en in canon_ids else (pt if pt in canon_ids else None)
+        if target is None:
+            continue
+        add_alias(entry.term_en, target)
+        add_alias(entry.term_pt, target)
+        add_synonym(target, entry.term_en)
+        add_synonym(target, entry.term_pt)
+
+    # MeSH (etapas 2/3): termo oficial + termo que casou + tentativas.
+    for node, hit in zip(question_graph.nodes, lookups):
+        cid = node.id
+        terms = [hit.mesh_label, hit.matched_term, *(hit.attempts or [])]
+        for term in terms:
+            if term:
+                add_alias(term, cid)
+        if hit.mesh_label:
+            add_synonym(cid, hit.mesh_label)
+
+    return alias_map, node_synonyms
 
 
 def _resolve_label(entity_id: str, llm_label: str, glossary: dict[str, str]) -> str:

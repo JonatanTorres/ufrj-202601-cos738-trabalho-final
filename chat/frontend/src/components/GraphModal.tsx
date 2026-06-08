@@ -129,6 +129,18 @@ export function GraphModal({ data, query, layout, onLayout, onClose }: Props) {
                   <h3>{node.label}</h3>
                   {node.sub && <div className="node-sub mono">{node.sub}</div>}
                 </div>
+                {node.aliases && node.aliases.length > 0 && (
+                  <div className="node-synonyms">
+                    <div className="section-eyebrow mono">
+                      SINÔNIMOS ({node.aliases.length})
+                    </div>
+                    <div className="synonym-list">
+                      {node.aliases.map((a, i) => (
+                        <span key={i} className="synonym-chip mono">{a}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="section-eyebrow mono">RELAÇÕES ({relatedEdges.length})</div>
                 <div className="edges-list">
                   {relatedEdges.map((e, i) => {
