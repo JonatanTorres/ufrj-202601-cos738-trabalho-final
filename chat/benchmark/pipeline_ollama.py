@@ -1,22 +1,29 @@
-"""Benchmark de verdadeiro/falso para modelos Ollama locais.
+"""Benchmark do pipeline completo para modelos Ollama locais.
 
-Executa cada pergunta em cada modelo e salva as respostas em results_bl_ollama.csv.
+Diferente do baseline (`baseline_ollama.py`, que pergunta direto ao modelo puro),
+aqui cada pergunta passa pelo pipeline médico do nosso backend (tradução →
+extração de grafo → MeSH → PubMed → veredito). O resultado gravado no CSV é o
+*veredito final* (Confirmado, Refutado, Indefinido, Contraditório, Sem evidência),
+e não um simples verdadeiro/falso.
+
+Pré-requisito: o backend precisa estar de pé (porta 8000):
+    cd chat
+    .venv/bin/uvicorn backend.main:app --port 8000
 
 Uso:
-    python benchmark/run.py
+    cd chat
+    python benchmark/pipeline_ollama.py
 """
 import csv
+import json
 import time
 from pathlib import Path
 
 import requests
 
-OLLAMA_URL = "http://localhost:11434/api/chat"
+API_URL = "http://localhost:8000/chat"
 
-MODELS = {
-    "qwen":  {"name": "qwen3:8b",    "extra": {"think": False}},
-    "llama": {"name": "llama3.1:8b", "extra": {}},
-}
+MODELS = ["qwen", "llama"]
 
 QUESTIONS = [
     "A sinvastatina é usada para tratar o colesterol alto?",
@@ -61,46 +68,84 @@ QUESTIONS = [
     "A dipirona pode causar hipotireoidismo?",
 ]
 
-PROMPT_TEMPLATE = (
-    "Responda apenas 'Verdadeiro' ou 'Falso', sem explicação: {question}"
-)
 
+def ask(model_key: str, question: str) -> str:
+    """Roda a pergunta pelo pipeline via API e devolve o veredito final.
 
-def ask(model_name: str, question: str, extra: dict) -> str:
+    Consome o stream SSE e captura o `label` do passo de veredito. Se o pipeline
+    pedir esclarecimento (termo não mapeado no MeSH) ou nada for produzido,
+    devolve um marcador explicativo no lugar do veredito.
+    """
     response = requests.post(
-        OLLAMA_URL,
-        json={
-            "model": model_name,
-            "messages": [{"role": "user", "content": PROMPT_TEMPLATE.format(question=question)}],
-            "stream": False,
-            **extra,
-        },
-        timeout=60,
+        API_URL,
+        json={"message": question, "model": model_key},
+        stream=True,
+        timeout=600,
     )
     response.raise_for_status()
-    return response.json()["message"]["content"].strip()
+
+    verdict = None
+    needs_clarification = False
+    event = None
+
+    for raw in response.iter_lines(decode_unicode=True):
+        if raw is None or raw == "":
+            event = None
+            continue
+        if raw.startswith("event:"):
+            event = raw[len("event:"):].strip()
+            continue
+        if not raw.startswith("data:"):
+            continue
+        data_str = raw[len("data:"):].strip()
+        try:
+            data = json.loads(data_str)
+        except json.JSONDecodeError:
+            continue
+
+        if event == "pipeline_step":
+            step = data.get("step")
+            status = data.get("status")
+            payload = data.get("payload") or {}
+            if step == "verdict" and status == "ok":
+                verdict = payload.get("label")
+            elif step == "final" and status == "ok" and verdict is None:
+                verdict = (payload.get("stage6") or {}).get("label")
+            elif step == "mesh_search" and status == "needs_clarification":
+                needs_clarification = True
+        elif event == "error":
+            return f"Erro: {data.get('message', '?')}"
+
+    if verdict:
+        return verdict
+    if needs_clarification:
+        return "Esclarecimento necessário"
+    return "Sem veredito"
 
 
 def main() -> None:
     results = []
 
-    for model_key, model_cfg in MODELS.items():
-        print(f"\n=== {model_key} ({model_cfg['name']}) ===")
+    for model_key in MODELS:
+        print(f"\n=== {model_key} ===")
         for i, question in enumerate(QUESTIONS, 1):
             t0 = time.time()
-            answer = ask(model_cfg["name"], question, model_cfg["extra"])
+            try:
+                verdict = ask(model_key, question)
+            except Exception as e:  # noqa: BLE001 — registra falha e segue
+                verdict = f"Erro: {e}"
             elapsed = time.time() - t0
-            print(f"  [{i:02d}] {answer!r:.50s} ({elapsed:.1f}s)")
+            print(f"  [{i:02d}] {verdict!r:.40s} ({elapsed:.1f}s)")
             results.append({
                 "model":    model_key,
                 "question": question,
-                "answer":   answer,
+                "verdict":  verdict,
                 "time_s":   round(elapsed, 2),
             })
 
-    output = Path(__file__).parent / "results_bl_ollama.csv"
+    output = Path(__file__).parent / "results_pl_ollama.csv"
     with open(output, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["model", "question", "answer", "time_s"])
+        writer = csv.DictWriter(f, fieldnames=["model", "question", "verdict", "time_s"])
         writer.writeheader()
         writer.writerows(results)
 

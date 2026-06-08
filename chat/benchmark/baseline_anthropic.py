@@ -52,6 +52,16 @@ QUESTIONS = [
     "A sinvastatina pode causar dores musculares?",
     "A furosemida pode causar perda de potássio (hipocalemia)?",
     "A loratadina causa diabetes?",
+    "O enalapril pode causar tosse seca?",
+    "O paracetamol pode causar catarata?",
+    "A morfina pode causar constipação (prisão de ventre)?",
+    "A metformina pode causar surdez?",
+    "A cisplatina pode causar perda auditiva (ototoxicidade)?",
+    "O salbutamol pode causar úlcera gástrica?",
+    "A vancomicina pode causar lesão renal (nefrotoxicidade)?",
+    "A azitromicina pode causar diabetes?",
+    "O carbonato de lítio pode causar tremores?",
+    "A dipirona pode causar hipotireoidismo?",
 ]
 
 PROMPT_TEMPLATE = (
