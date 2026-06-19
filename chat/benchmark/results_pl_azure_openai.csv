@@ -1,0 +1,41 @@
+model,question,verdict,time_s
+azure-gpt-5.4,A sinvastatina é usada para tratar o colesterol alto?,Indefinido,30.6
+azure-gpt-5.4,A amoxicilina é eficaz no tratamento da gripe?,Sem evidência,22.15
+azure-gpt-5.4,A metformina é indicada para o tratamento do diabetes tipo 2?,Indefinido,29.33
+azure-gpt-5.4,O omeprazol é usado para tratar a depressão?,Sem evidência,27.88
+azure-gpt-5.4,A levotiroxina trata o hipotireoidismo?,Indefinido,44.71
+azure-gpt-5.4,A insulina é indicada para tratar a hipertensão?,Sem evidência,21.97
+azure-gpt-5.4,A fluoxetina é usada para tratar o diabetes?,Indefinido,27.53
+azure-gpt-5.4,O captopril é usado no tratamento da hipertensão?,Sem evidência,15.43
+azure-gpt-5.4,A sertralina é indicada para tratar a hipertensão?,Indefinido,31.56
+azure-gpt-5.4,O alopurinol é usado no tratamento da gota?,Confirmado,35.53
+azure-gpt-5.4,O alopurinol é indicado para tratar a hipertensão?,Indefinido,27.55
+azure-gpt-5.4,O diazepam é indicado para tratar infecções bacterianas?,Sem evidência,15.62
+azure-gpt-5.4,A loratadina é usada no tratamento de alergias?,Indefinido,42.63
+azure-gpt-5.4,A levotiroxina é usada para tratar a asma?,Refutado,25.32
+azure-gpt-5.4,A varfarina é usada para prevenir tromboses?,Indefinido,54.13
+azure-gpt-5.4,A varfarina é usada para tratar o colesterol alto?,Indefinido,23.82
+azure-gpt-5.4,A ivermectina é usada para tratar infecções por parasitas?,Indefinido,23.53
+azure-gpt-5.4,A ivermectina é eficaz no tratamento da COVID-19?,Refutado,21.11
+azure-gpt-5.4,A hidroxicloroquina cura a COVID-19?,Sem evidência,27.83
+azure-gpt-5.4,O metotrexato é utilizado no tratamento da artrite reumatoide?,Sem evidência,23.8
+azure-gpt-5.4,O paracetamol previne o câncer?,Sem evidência,15.39
+azure-gpt-5.4,O ácido acetilsalicílico (AAS) é usado para prevenir o infarto em pacientes de risco?,Sem evidência,27.15
+azure-gpt-5.4,O uso prolongado de prednisona pode causar osteoporose?,Sem evidência,16.03
+azure-gpt-5.4,A amoxicilina causa hipertensão?,Sem evidência,29.21
+azure-gpt-5.4,O paracetamol em doses elevadas pode causar lesão no fígado?,Confirmado,25.69
+azure-gpt-5.4,A metformina causa hipotireoidismo?,Sem evidência,14.44
+azure-gpt-5.4,O uso de ibuprofeno pode causar úlcera gástrica?,Sem evidência,17.64
+azure-gpt-5.4,A sinvastatina pode causar dores musculares?,Sem evidência,15.08
+azure-gpt-5.4,A furosemida pode causar perda de potássio (hipocalemia)?,Sem evidência,19.5
+azure-gpt-5.4,A loratadina causa diabetes?,Indefinido,19.0
+azure-gpt-5.4,O enalapril pode causar tosse seca?,Indefinido,48.77
+azure-gpt-5.4,O paracetamol pode causar catarata?,Confirmado,48.55
+azure-gpt-5.4,A morfina pode causar constipação (prisão de ventre)?,Confirmado,24.96
+azure-gpt-5.4,A metformina pode causar surdez?,Refutado,29.05
+azure-gpt-5.4,A cisplatina pode causar perda auditiva (ototoxicidade)?,Confirmado,42.21
+azure-gpt-5.4,O salbutamol pode causar úlcera gástrica?,Sem evidência,24.4
+azure-gpt-5.4,A vancomicina pode causar lesão renal (nefrotoxicidade)?,Confirmado,38.62
+azure-gpt-5.4,A azitromicina pode causar diabetes?,Sem evidência,26.79
+azure-gpt-5.4,O carbonato de lítio pode causar tremores?,Confirmado,29.44
+azure-gpt-5.4,A dipirona pode causar hipotireoidismo?,Sem evidência,25.88

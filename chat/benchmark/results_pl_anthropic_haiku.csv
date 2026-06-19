@@ -1,0 +1,41 @@
+model,question,verdict,time_s
+claude-haiku-4-5,A sinvastatina é usada para tratar o colesterol alto?,Confirmado,34.68
+claude-haiku-4-5,A amoxicilina é eficaz no tratamento da gripe?,Indefinido,25.62
+claude-haiku-4-5,A metformina é indicada para o tratamento do diabetes tipo 2?,Confirmado,24.02
+claude-haiku-4-5,O omeprazol é usado para tratar a depressão?,Sem evidência,13.78
+claude-haiku-4-5,A levotiroxina trata o hipotireoidismo?,Confirmado,24.25
+claude-haiku-4-5,A insulina é indicada para tratar a hipertensão?,Indefinido,23.55
+claude-haiku-4-5,A fluoxetina é usada para tratar o diabetes?,Indefinido,25.62
+claude-haiku-4-5,O captopril é usado no tratamento da hipertensão?,Confirmado,22.82
+claude-haiku-4-5,A sertralina é indicada para tratar a hipertensão?,Indefinido,22.26
+claude-haiku-4-5,O alopurinol é usado no tratamento da gota?,Confirmado,28.06
+claude-haiku-4-5,O alopurinol é indicado para tratar a hipertensão?,Confirmado,29.1
+claude-haiku-4-5,O diazepam é indicado para tratar infecções bacterianas?,Indefinido,24.44
+claude-haiku-4-5,A loratadina é usada no tratamento de alergias?,Indefinido,27.47
+claude-haiku-4-5,A levotiroxina é usada para tratar a asma?,Indefinido,24.35
+claude-haiku-4-5,A varfarina é usada para prevenir tromboses?,Indefinido,29.06
+claude-haiku-4-5,A varfarina é usada para tratar o colesterol alto?,Indefinido,21.83
+claude-haiku-4-5,A ivermectina é usada para tratar infecções por parasitas?,Indefinido,24.16
+claude-haiku-4-5,A ivermectina é eficaz no tratamento da COVID-19?,Refutado,24.71
+claude-haiku-4-5,A hidroxicloroquina cura a COVID-19?,Refutado,21.56
+claude-haiku-4-5,O metotrexato é utilizado no tratamento da artrite reumatoide?,Confirmado,30.31
+claude-haiku-4-5,O paracetamol previne o câncer?,Indefinido,24.79
+claude-haiku-4-5,O ácido acetilsalicílico (AAS) é usado para prevenir o infarto em pacientes de risco?,Sem evidência,13.12
+claude-haiku-4-5,O uso prolongado de prednisona pode causar osteoporose?,Indefinido,22.88
+claude-haiku-4-5,A amoxicilina causa hipertensão?,Indefinido,26.01
+claude-haiku-4-5,O paracetamol em doses elevadas pode causar lesão no fígado?,Confirmado,22.45
+claude-haiku-4-5,A metformina causa hipotireoidismo?,Refutado,20.43
+claude-haiku-4-5,O uso de ibuprofeno pode causar úlcera gástrica?,Confirmado,24.18
+claude-haiku-4-5,A sinvastatina pode causar dores musculares?,Confirmado,24.88
+claude-haiku-4-5,A furosemida pode causar perda de potássio (hipocalemia)?,Confirmado,26.57
+claude-haiku-4-5,A loratadina causa diabetes?,Indefinido,14.76
+claude-haiku-4-5,O enalapril pode causar tosse seca?,Sem evidência,22.12
+claude-haiku-4-5,O paracetamol pode causar catarata?,Confirmado,22.23
+claude-haiku-4-5,A morfina pode causar constipação (prisão de ventre)?,Confirmado,21.48
+claude-haiku-4-5,A metformina pode causar surdez?,Refutado,20.84
+claude-haiku-4-5,A cisplatina pode causar perda auditiva (ototoxicidade)?,Confirmado,24.62
+claude-haiku-4-5,O salbutamol pode causar úlcera gástrica?,Sem evidência,10.27
+claude-haiku-4-5,A vancomicina pode causar lesão renal (nefrotoxicidade)?,Confirmado,35.61
+claude-haiku-4-5,A azitromicina pode causar diabetes?,Refutado,24.46
+claude-haiku-4-5,O carbonato de lítio pode causar tremores?,Confirmado,21.8
+claude-haiku-4-5,A dipirona pode causar hipotireoidismo?,Sem evidência,10.51

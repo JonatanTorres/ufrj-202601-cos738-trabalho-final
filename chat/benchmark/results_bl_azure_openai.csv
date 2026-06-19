@@ -1,0 +1,41 @@
+model,question,answer,time_s
+gpt-5.4,A sinvastatina é usada para tratar o colesterol alto?,Verdadeiro,6.4
+gpt-5.4,A amoxicilina é eficaz no tratamento da gripe?,Falso,0.89
+gpt-5.4,A metformina é indicada para o tratamento do diabetes tipo 2?,Verdadeiro,1.0
+gpt-5.4,O omeprazol é usado para tratar a depressão?,Falso,0.92
+gpt-5.4,A levotiroxina trata o hipotireoidismo?,Verdadeiro,0.66
+gpt-5.4,A insulina é indicada para tratar a hipertensão?,Falso,0.91
+gpt-5.4,A fluoxetina é usada para tratar o diabetes?,Falso,1.34
+gpt-5.4,O captopril é usado no tratamento da hipertensão?,Verdadeiro,0.77
+gpt-5.4,A sertralina é indicada para tratar a hipertensão?,Falso,0.89
+gpt-5.4,O alopurinol é usado no tratamento da gota?,Verdadeiro,1.01
+gpt-5.4,O alopurinol é indicado para tratar a hipertensão?,Falso,0.8
+gpt-5.4,O diazepam é indicado para tratar infecções bacterianas?,Falso,0.6
+gpt-5.4,A loratadina é usada no tratamento de alergias?,Verdadeiro,0.99
+gpt-5.4,A levotiroxina é usada para tratar a asma?,Falso,0.88
+gpt-5.4,A varfarina é usada para prevenir tromboses?,Verdadeiro,0.78
+gpt-5.4,A varfarina é usada para tratar o colesterol alto?,Falso,0.91
+gpt-5.4,A ivermectina é usada para tratar infecções por parasitas?,Verdadeiro,0.8
+gpt-5.4,A ivermectina é eficaz no tratamento da COVID-19?,Falso,0.79
+gpt-5.4,A hidroxicloroquina cura a COVID-19?,Falso,0.95
+gpt-5.4,O metotrexato é utilizado no tratamento da artrite reumatoide?,Verdadeiro,2.25
+gpt-5.4,O paracetamol previne o câncer?,Falso,0.85
+gpt-5.4,O ácido acetilsalicílico (AAS) é usado para prevenir o infarto em pacientes de risco?,Verdadeiro,1.0
+gpt-5.4,O uso prolongado de prednisona pode causar osteoporose?,Verdadeiro,0.75
+gpt-5.4,A amoxicilina causa hipertensão?,Falso,0.67
+gpt-5.4,O paracetamol em doses elevadas pode causar lesão no fígado?,Verdadeiro,1.13
+gpt-5.4,A metformina causa hipotireoidismo?,Falso,1.09
+gpt-5.4,O uso de ibuprofeno pode causar úlcera gástrica?,Verdadeiro,1.09
+gpt-5.4,A sinvastatina pode causar dores musculares?,Verdadeiro,0.74
+gpt-5.4,A furosemida pode causar perda de potássio (hipocalemia)?,Verdadeiro,0.68
+gpt-5.4,A loratadina causa diabetes?,Falso,0.79
+gpt-5.4,O enalapril pode causar tosse seca?,Verdadeiro,1.01
+gpt-5.4,O paracetamol pode causar catarata?,Falso,0.84
+gpt-5.4,A morfina pode causar constipação (prisão de ventre)?,Verdadeiro,0.85
+gpt-5.4,A metformina pode causar surdez?,Falso,0.74
+gpt-5.4,A cisplatina pode causar perda auditiva (ototoxicidade)?,Verdadeiro,0.91
+gpt-5.4,O salbutamol pode causar úlcera gástrica?,Falso,0.73
+gpt-5.4,A vancomicina pode causar lesão renal (nefrotoxicidade)?,Verdadeiro,0.94
+gpt-5.4,A azitromicina pode causar diabetes?,Falso,0.69
+gpt-5.4,O carbonato de lítio pode causar tremores?,Verdadeiro,0.97
+gpt-5.4,A dipirona pode causar hipotireoidismo?,Falso,0.74

@@ -1,0 +1,81 @@
+model,question,answer,time_s
+haiku,A sinvastatina é usada para tratar o colesterol alto?,Verdadeiro,1.67
+haiku,A amoxicilina é eficaz no tratamento da gripe?,Falso,0.62
+haiku,A metformina é indicada para o tratamento do diabetes tipo 2?,Verdadeiro,0.77
+haiku,O omeprazol é usado para tratar a depressão?,Falso,0.63
+haiku,A levotiroxina trata o hipotireoidismo?,Verdadeiro,0.62
+haiku,A insulina é indicada para tratar a hipertensão?,Falso,0.61
+haiku,A fluoxetina é usada para tratar o diabetes?,Falso,0.73
+haiku,O captopril é usado no tratamento da hipertensão?,Verdadeiro,0.56
+haiku,A sertralina é indicada para tratar a hipertensão?,Falso,1.17
+haiku,O alopurinol é usado no tratamento da gota?,Verdadeiro,0.6
+haiku,O alopurinol é indicado para tratar a hipertensão?,Falso,0.75
+haiku,O diazepam é indicado para tratar infecções bacterianas?,Falso,0.65
+haiku,A loratadina é usada no tratamento de alergias?,Verdadeiro,1.03
+haiku,A levotiroxina é usada para tratar a asma?,Falso,0.88
+haiku,A varfarina é usada para prevenir tromboses?,Verdadeiro,0.65
+haiku,A varfarina é usada para tratar o colesterol alto?,Falso,1.03
+haiku,A ivermectina é usada para tratar infecções por parasitas?,Verdadeiro,0.63
+haiku,A ivermectina é eficaz no tratamento da COVID-19?,Falso,0.61
+haiku,A hidroxicloroquina cura a COVID-19?,Falso,1.36
+haiku,O metotrexato é utilizado no tratamento da artrite reumatoide?,Verdadeiro,0.6
+haiku,O paracetamol previne o câncer?,Falso,0.89
+haiku,O ácido acetilsalicílico (AAS) é usado para prevenir o infarto em pacientes de risco?,Verdadeiro,1.07
+haiku,O uso prolongado de prednisona pode causar osteoporose?,Verdadeiro,0.61
+haiku,A amoxicilina causa hipertensão?,Falso,0.64
+haiku,O paracetamol em doses elevadas pode causar lesão no fígado?,Verdadeiro,0.68
+haiku,A metformina causa hipotireoidismo?,Falso,0.81
+haiku,O uso de ibuprofeno pode causar úlcera gástrica?,Verdadeiro,0.61
+haiku,A sinvastatina pode causar dores musculares?,Verdadeiro,4.67
+haiku,A furosemida pode causar perda de potássio (hipocalemia)?,Verdadeiro,0.72
+haiku,A loratadina causa diabetes?,Falso,0.65
+haiku,O enalapril pode causar tosse seca?,Verdadeiro,0.63
+haiku,O paracetamol pode causar catarata?,Falso,0.61
+haiku,A morfina pode causar constipação (prisão de ventre)?,Verdadeiro,0.75
+haiku,A metformina pode causar surdez?,Falso,0.58
+haiku,A cisplatina pode causar perda auditiva (ototoxicidade)?,Verdadeiro,0.81
+haiku,O salbutamol pode causar úlcera gástrica?,Falso,1.16
+haiku,A vancomicina pode causar lesão renal (nefrotoxicidade)?,Verdadeiro,1.77
+haiku,A azitromicina pode causar diabetes?,Falso,0.62
+haiku,O carbonato de lítio pode causar tremores?,Verdadeiro,0.95
+haiku,A dipirona pode causar hipotireoidismo?,Falso,0.59
+sonnet,A sinvastatina é usada para tratar o colesterol alto?,**Verdadeiro**,1.14
+sonnet,A amoxicilina é eficaz no tratamento da gripe?,Falso,1.51
+sonnet,A metformina é indicada para o tratamento do diabetes tipo 2?,**Verdadeiro**,1.21
+sonnet,O omeprazol é usado para tratar a depressão?,**Falso**,5.0
+sonnet,A levotiroxina trata o hipotireoidismo?,**Verdadeiro**,1.23
+sonnet,A insulina é indicada para tratar a hipertensão?,**Falso**,5.89
+sonnet,A fluoxetina é usada para tratar o diabetes?,**Falso**,1.02
+sonnet,O captopril é usado no tratamento da hipertensão?,**Verdadeiro**,1.22
+sonnet,A sertralina é indicada para tratar a hipertensão?,**Falso**,1.19
+sonnet,O alopurinol é usado no tratamento da gota?,**Verdadeiro**,1.78
+sonnet,O alopurinol é indicado para tratar a hipertensão?,**Falso**,1.19
+sonnet,O diazepam é indicado para tratar infecções bacterianas?,**Falso**,1.2
+sonnet,A loratadina é usada no tratamento de alergias?,**Verdadeiro**,1.17
+sonnet,A levotiroxina é usada para tratar a asma?,Falso,2.03
+sonnet,A varfarina é usada para prevenir tromboses?,**Verdadeiro**,1.25
+sonnet,A varfarina é usada para tratar o colesterol alto?,Falso,1.18
+sonnet,A ivermectina é usada para tratar infecções por parasitas?,**Verdadeiro**,1.24
+sonnet,A ivermectina é eficaz no tratamento da COVID-19?,**Falso**,1.21
+sonnet,A hidroxicloroquina cura a COVID-19?,**Falso**,1.11
+sonnet,O metotrexato é utilizado no tratamento da artrite reumatoide?,**Verdadeiro**,1.31
+sonnet,O paracetamol previne o câncer?,Falso,1.62
+sonnet,O ácido acetilsalicílico (AAS) é usado para prevenir o infarto em pacientes de risco?,**Verdadeiro**,1.23
+sonnet,O uso prolongado de prednisona pode causar osteoporose?,**Verdadeiro**,1.13
+sonnet,A amoxicilina causa hipertensão?,**Falso**,1.19
+sonnet,O paracetamol em doses elevadas pode causar lesão no fígado?,**Verdadeiro**,1.17
+sonnet,A metformina causa hipotireoidismo?,**Falso**,1.14
+sonnet,O uso de ibuprofeno pode causar úlcera gástrica?,**Verdadeiro**,1.07
+sonnet,A sinvastatina pode causar dores musculares?,**Verdadeiro**,1.12
+sonnet,A furosemida pode causar perda de potássio (hipocalemia)?,**Verdadeiro**,1.22
+sonnet,A loratadina causa diabetes?,**Falso**,1.05
+sonnet,O enalapril pode causar tosse seca?,Verdadeiro,1.04
+sonnet,O paracetamol pode causar catarata?,**Falso**,1.34
+sonnet,A morfina pode causar constipação (prisão de ventre)?,**Verdadeiro**,1.24
+sonnet,A metformina pode causar surdez?,**Falso**,1.13
+sonnet,A cisplatina pode causar perda auditiva (ototoxicidade)?,**Verdadeiro**,2.04
+sonnet,O salbutamol pode causar úlcera gástrica?,**Falso**,1.14
+sonnet,A vancomicina pode causar lesão renal (nefrotoxicidade)?,**Verdadeiro**,1.4
+sonnet,A azitromicina pode causar diabetes?,**Falso**,1.07
+sonnet,O carbonato de lítio pode causar tremores?,Verdadeiro,1.38
+sonnet,A dipirona pode causar hipotireoidismo?,**Falso**,1.13

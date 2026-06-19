@@ -1,0 +1,260 @@
+import json
+import logging
+import time
+
+from langchain_core.prompts import ChatPromptTemplate
+
+from ..llm import build_chat_model
+from .llm_schemas import LLMExtractorResult, LLMSynonyms
+from .models import (
+    EdgeType,
+    GlossaryEntry,
+    GraphEdge,
+    GraphNode,
+    GraphPayload,
+    MeshLookup,
+)
+from .prompts import (
+    ARTICLE_EXTRACTOR_TEMPLATE,
+    QUESTION_EXTRACTOR_TEMPLATE,
+    SYNONYMS_TEMPLATE,
+)
+
+log = logging.getLogger("medgraph.extractor")
+
+
+_EDGE_LABELS: dict[EdgeType, str] = {
+    "induces":     "causa",
+    "treats":      "trata",
+    "no_relation": "sem relação",
+}
+
+
+def _norm_id(raw: str) -> str:
+    return raw.strip().lower().replace("-", "_").replace(" ", "_")
+
+
+def _ascii_only(s: str) -> bool:
+    return all(ord(c) <= 127 for c in s)
+
+
+def build_glossary_dict(entries: list[GlossaryEntry]) -> dict[str, str]:
+    """Converte os pares PT↔EN do tradutor em um dict id_normalizado_EN → PT,
+    usando a mesma normalização que o extractor aplica aos ids da LLM. Isso
+    garante que o lookup em _resolve_label case mesmo quando o tradutor escreve
+    'Liver Fibrosis' e o extractor produz id 'liver_fibrosis'."""
+    out: dict[str, str] = {}
+    for entry in entries:
+        key = _norm_id(entry.term_en)
+        if not key or not _ascii_only(key):
+            continue
+        out.setdefault(key, entry.term_pt.strip())
+    return out
+
+
+def build_alias_map(
+    question_graph: GraphPayload,
+    lookups: list[MeshLookup],
+    glossary_entries: list[GlossaryEntry],
+) -> tuple[dict[str, str], dict[str, list[str]]]:
+    """Monta os aliases de cada entidade da pergunta reaproveitando os sinônimos que
+    o pipeline já produziu: o glossário PT↔EN da tradução (etapa 1) e o mapeamento
+    MeSH (etapas 2/3). Serve para colapsar, na etapa de Match, nós que são o mesmo
+    conceito sob nomes diferentes (ex.: 'high_cholesterol' e 'hypercholesterolemia').
+
+    Retorna:
+    - alias_map: id_variante_normalizado → id_canônico (id do nó da pergunta).
+    - node_synonyms: id_canônico → labels legíveis, para exibição no frontend.
+
+    O id canônico é sempre um `node.id` da pergunta; variantes que já são canônicas de
+    OUTRO nó nunca viram alias (evita fundir entidades distintas).
+    """
+    canon_ids = {n.id for n in question_graph.nodes}
+    alias_map: dict[str, str] = {}
+    node_synonyms: dict[str, list[str]] = {n.id: [] for n in question_graph.nodes}
+
+    def add_alias(variant: str, canonical: str) -> None:
+        v = _norm_id(variant)
+        if not v or v == canonical or v in canon_ids:
+            return
+        alias_map.setdefault(v, canonical)
+
+    def add_synonym(canonical: str, label: str) -> None:
+        label = (label or "").strip()
+        if not label or canonical not in node_synonyms:
+            return
+        if label not in node_synonyms[canonical]:
+            node_synonyms[canonical].append(label)
+
+    # Glossário (etapa 1): cada par PT↔EN dá duas formas do mesmo conceito.
+    for entry in glossary_entries:
+        en = _norm_id(entry.term_en)
+        pt = _norm_id(entry.term_pt)
+        target = en if en in canon_ids else (pt if pt in canon_ids else None)
+        if target is None:
+            continue
+        add_alias(entry.term_en, target)
+        add_alias(entry.term_pt, target)
+        add_synonym(target, entry.term_en)
+        add_synonym(target, entry.term_pt)
+
+    # MeSH (etapas 2/3): termo oficial + termo que casou + tentativas.
+    for node, hit in zip(question_graph.nodes, lookups):
+        cid = node.id
+        terms = [hit.mesh_label, hit.matched_term, *(hit.attempts or [])]
+        for term in terms:
+            if term:
+                add_alias(term, cid)
+        if hit.mesh_label:
+            add_synonym(cid, hit.mesh_label)
+
+    return alias_map, node_synonyms
+
+
+def _resolve_label(entity_id: str, llm_label: str, glossary: dict[str, str]) -> str:
+    """Glossário do tradutor é a fonte de verdade para label PT — sobrescreve o
+    label_pt da LLM extractora. Por quê: o tradutor viu a forma exata que o
+    usuário escreveu (ex.: 'Estatinas'), enquanto o extractor opera só sobre
+    o texto EN e pode recair em formas inglesas para drogas 'consagradas'.
+    """
+    if entity_id in glossary:
+        return glossary[entity_id]
+    return llm_label or entity_id
+
+
+def _to_graph_payload(
+    result: LLMExtractorResult, glossary: dict[str, str]
+) -> GraphPayload:
+    nodes: list[GraphNode] = []
+    seen: set[str] = set()
+
+    for c in result.chemicals:
+        cid = _norm_id(c.id)
+        if not cid or not _ascii_only(cid) or cid in seen:
+            continue
+        seen.add(cid)
+        nodes.append(GraphNode(
+            id=cid, label=_resolve_label(cid, c.label_pt, glossary),
+            type="drug", size=28,
+        ))
+
+    for d in result.diseases:
+        did = _norm_id(d.id)
+        if not did or not _ascii_only(did) or did in seen:
+            continue
+        seen.add(did)
+        nodes.append(GraphNode(
+            id=did, label=_resolve_label(did, d.label_pt, glossary),
+            type="condition", size=26,
+        ))
+
+    edges: list[GraphEdge] = []
+    for r in result.relations:
+        s = _norm_id(r.chemical_id)
+        t = _norm_id(r.disease_id)
+        if not s or not t or s not in seen or t not in seen:
+            continue
+        edges.append(GraphEdge(
+            s=s, t=t, type=r.type, label=_EDGE_LABELS[r.type], conf=0.5,
+        ))
+
+    return GraphPayload(nodes=nodes, edges=edges)
+
+
+def _render_glossary_for_prompt(glossary: dict[str, str]) -> str:
+    if not glossary:
+        return "[]"
+    pairs = [{"term_en": en, "term_pt": pt} for en, pt in glossary.items()]
+    return json.dumps(pairs, ensure_ascii=False)
+
+
+async def _extract_graph(
+    template: ChatPromptTemplate,
+    kind: str,
+    text_en: str,
+    model_key: str,
+    glossary: dict[str, str] | None,
+) -> GraphPayload:
+    glossary = glossary or {}
+    llm = build_chat_model(model_key).with_structured_output(
+        LLMExtractorResult, method="json_schema"
+    )
+    chain = template | llm
+    log.info("  → extractor[%s].ainvoke (%s, input %d chars, glossary=%d terms)…",
+             kind, model_key, len(text_en), len(glossary))
+    t0 = time.monotonic()
+    try:
+        result = await chain.ainvoke({
+            "text_en": text_en,
+            "glossary": _render_glossary_for_prompt(glossary),
+        })
+    except Exception as e:
+        log.warning("  → extractor[%s] failed after %.1fs: %s",
+                    kind, time.monotonic() - t0, e)
+        return GraphPayload()
+    log.info("  → extractor[%s] done in %.1fs", kind, time.monotonic() - t0)
+    return _to_graph_payload(result, glossary)
+
+
+async def extract_graph_from_question(
+    text_en: str,
+    model_key: str,
+    glossary: dict[str, str] | None = None,
+) -> GraphPayload:
+    """Extrai grafo bilíngue da PERGUNTA/AFIRMAÇÃO do usuário (etapa 2).
+    Input típico: 1 sentença curta. Não assume estrutura de abstract."""
+    return await _extract_graph(
+        QUESTION_EXTRACTOR_TEMPLATE, "question", text_en, model_key, glossary,
+    )
+
+
+async def extract_graph_from_article(
+    text_en: str,
+    model_key: str,
+    glossary: dict[str, str] | None = None,
+) -> GraphPayload:
+    """Extrai grafo bilíngue de um ARTIGO PubMed (etapa 5).
+    Input típico: título + abstract (frequentemente estruturado em seções
+    BACKGROUND/METHODS/RESULTS/CONCLUSIONS). O prompt prioriza CONCLUSIONS
+    sobre BACKGROUND quando elas divergem."""
+    return await _extract_graph(
+        ARTICLE_EXTRACTOR_TEMPLATE, "article", text_en, model_key, glossary,
+    )
+
+
+async def english_synonyms(
+    term_en: str, kind: str, model_key: str, max_n: int = 3
+) -> list[str]:
+    """Retorna até `max_n` sinônimos médicos em inglês para `term_en`.
+    `kind` é 'drug' ou 'condition'. Retorna [] em falha. Filtra não-ASCII."""
+    llm = build_chat_model(model_key).with_structured_output(
+        LLMSynonyms, method="json_schema"
+    )
+    chain = SYNONYMS_TEMPLATE | llm
+    term_display = term_en.replace("_", " ")
+    log.info("  → synonyms.ainvoke (%s, kind=%s term=%r)…", model_key, kind, term_display)
+    t0 = time.monotonic()
+    try:
+        result = await chain.ainvoke({"kind": kind, "term": term_display, "max_n": max_n})
+    except Exception as e:
+        log.warning("  → synonyms failed after %.1fs: %s", time.monotonic() - t0, e)
+        return []
+
+    out: list[str] = []
+    seen: set[str] = set()
+    original_norm = term_display.strip().lower()
+    for it in result.synonyms:
+        s = it.strip()
+        if not s or not _ascii_only(s):
+            continue
+        if s.lower() == original_norm:
+            continue
+        key = s.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(s)
+        if len(out) >= max_n:
+            break
+    log.info("  → synonyms for %r → %s (%.1fs)", term_en, out, time.monotonic() - t0)
+    return out

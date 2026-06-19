@@ -1,0 +1,81 @@
+model,question,verdict,time_s
+qwen,A sinvastatina é usada para tratar o colesterol alto?,Confirmado,54.52
+qwen,A amoxicilina é eficaz no tratamento da gripe?,Indefinido,54.15
+qwen,A metformina é indicada para o tratamento do diabetes tipo 2?,Confirmado,55.55
+qwen,O omeprazol é usado para tratar a depressão?,Sem evidência,15.44
+qwen,A levotiroxina trata o hipotireoidismo?,Confirmado,41.63
+qwen,A insulina é indicada para tratar a hipertensão?,Refutado,44.09
+qwen,A fluoxetina é usada para tratar o diabetes?,Indefinido,56.45
+qwen,O captopril é usado no tratamento da hipertensão?,Confirmado,43.75
+qwen,A sertralina é indicada para tratar a hipertensão?,Indefinido,46.4
+qwen,O alopurinol é usado no tratamento da gota?,Confirmado,39.28
+qwen,O alopurinol é indicado para tratar a hipertensão?,Refutado,40.34
+qwen,O diazepam é indicado para tratar infecções bacterianas?,Indefinido,50.0
+qwen,A loratadina é usada no tratamento de alergias?,Indefinido,65.14
+qwen,A levotiroxina é usada para tratar a asma?,Refutado,44.67
+qwen,A varfarina é usada para prevenir tromboses?,Confirmado,72.01
+qwen,A varfarina é usada para tratar o colesterol alto?,Indefinido,50.91
+qwen,A ivermectina é usada para tratar infecções por parasitas?,Confirmado,44.21
+qwen,A ivermectina é eficaz no tratamento da COVID-19?,Refutado,36.45
+qwen,A hidroxicloroquina cura a COVID-19?,Refutado,40.46
+qwen,O metotrexato é utilizado no tratamento da artrite reumatoide?,Confirmado,51.65
+qwen,O paracetamol previne o câncer?,Indefinido,56.71
+qwen,O ácido acetilsalicílico (AAS) é usado para prevenir o infarto em pacientes de risco?,Sem evidência,16.36
+qwen,O uso prolongado de prednisona pode causar osteoporose?,Confirmado,43.08
+qwen,A amoxicilina causa hipertensão?,Indefinido,52.77
+qwen,O paracetamol em doses elevadas pode causar lesão no fígado?,Indefinido,25.28
+qwen,A metformina causa hipotireoidismo?,Indefinido,43.67
+qwen,O uso de ibuprofeno pode causar úlcera gástrica?,Confirmado,52.09
+qwen,A sinvastatina pode causar dores musculares?,Confirmado,62.33
+qwen,A furosemida pode causar perda de potássio (hipocalemia)?,Confirmado,71.99
+qwen,A loratadina causa diabetes?,Indefinido,35.26
+qwen,O enalapril pode causar tosse seca?,Esclarecimento necessário,11.61
+qwen,O paracetamol pode causar catarata?,Confirmado,56.45
+qwen,A morfina pode causar constipação (prisão de ventre)?,Confirmado,856.47
+qwen,A metformina pode causar surdez?,Refutado,32.92
+qwen,A cisplatina pode causar perda auditiva (ototoxicidade)?,Confirmado,48.23
+qwen,O salbutamol pode causar úlcera gástrica?,Sem evidência,12.08
+qwen,A vancomicina pode causar lesão renal (nefrotoxicidade)?,Confirmado,70.34
+qwen,A azitromicina pode causar diabetes?,Refutado,40.93
+qwen,O carbonato de lítio pode causar tremores?,Confirmado,38.75
+qwen,A dipirona pode causar hipotireoidismo?,Sem evidência,15.03
+llama,A sinvastatina é usada para tratar o colesterol alto?,Indefinido,47.2
+llama,A amoxicilina é eficaz no tratamento da gripe?,Indefinido,63.87
+llama,A metformina é indicada para o tratamento do diabetes tipo 2?,Indefinido,30.97
+llama,O omeprazol é usado para tratar a depressão?,Sem evidência,10.37
+llama,A levotiroxina trata o hipotireoidismo?,Confirmado,39.38
+llama,A insulina é indicada para tratar a hipertensão?,Refutado,40.14
+llama,A fluoxetina é usada para tratar o diabetes?,Indefinido,55.69
+llama,O captopril é usado no tratamento da hipertensão?,Indefinido,42.63
+llama,A sertralina é indicada para tratar a hipertensão?,Indefinido,46.64
+llama,O alopurinol é usado no tratamento da gota?,Confirmado,33.75
+llama,O alopurinol é indicado para tratar a hipertensão?,Indefinido,36.34
+llama,O diazepam é indicado para tratar infecções bacterianas?,Indefinido,34.18
+llama,A loratadina é usada no tratamento de alergias?,Sem evidência,56.16
+llama,A levotiroxina é usada para tratar a asma?,Indefinido,36.59
+llama,A varfarina é usada para prevenir tromboses?,Indefinido,50.87
+llama,A varfarina é usada para tratar o colesterol alto?,Indefinido,46.56
+llama,A ivermectina é usada para tratar infecções por parasitas?,Sem evidência,32.25
+llama,A ivermectina é eficaz no tratamento da COVID-19?,Sem evidência,7.19
+llama,A hidroxicloroquina cura a COVID-19?,Indefinido,23.97
+llama,O metotrexato é utilizado no tratamento da artrite reumatoide?,Confirmado,41.03
+llama,O paracetamol previne o câncer?,Indefinido,33.19
+llama,O ácido acetilsalicílico (AAS) é usado para prevenir o infarto em pacientes de risco?,Indefinido,41.59
+llama,O uso prolongado de prednisona pode causar osteoporose?,Indefinido,35.14
+llama,A amoxicilina causa hipertensão?,Indefinido,56.9
+llama,O paracetamol em doses elevadas pode causar lesão no fígado?,Indefinido,43.63
+llama,A metformina causa hipotireoidismo?,Indefinido,52.16
+llama,O uso de ibuprofeno pode causar úlcera gástrica?,Indefinido,54.07
+llama,A sinvastatina pode causar dores musculares?,Indefinido,36.83
+llama,A furosemida pode causar perda de potássio (hipocalemia)?,Confirmado,44.83
+llama,A loratadina causa diabetes?,Indefinido,27.02
+llama,O enalapril pode causar tosse seca?,Indefinido,37.6
+llama,O paracetamol pode causar catarata?,Confirmado,52.55
+llama,A morfina pode causar constipação (prisão de ventre)?,Confirmado,40.85
+llama,A metformina pode causar surdez?,Indefinido,37.13
+llama,A cisplatina pode causar perda auditiva (ototoxicidade)?,Confirmado,41.36
+llama,O salbutamol pode causar úlcera gástrica?,Sem evidência,11.73
+llama,A vancomicina pode causar lesão renal (nefrotoxicidade)?,Sem evidência,10.63
+llama,A azitromicina pode causar diabetes?,Refutado,40.45
+llama,O carbonato de lítio pode causar tremores?,Indefinido,31.99
+llama,A dipirona pode causar hipotireoidismo?,Sem evidência,9.88
