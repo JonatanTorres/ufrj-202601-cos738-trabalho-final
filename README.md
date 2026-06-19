@@ -15,6 +15,8 @@ veredito gerado por LLM. O provedor de LLM é intercambiável: modelos locais vi
 > **Onde está o código?** Tudo o que vale está na pasta [`chat/`](chat/).
 > A pasta `_descartado-experimentos-iniciais/` é um rumo abandonado.
 
+> **Vídeos de Demonstração:** A pasta [`chat/demo`](chat/demo) contém vídeos curtos de demonstração da ferramenta.
+
 ---
 
 ## ⚡ Caminho mais curto para testar
