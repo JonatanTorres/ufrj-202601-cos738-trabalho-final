@@ -1,3 +1,11 @@
+> ⚠️ **PASTA DESCARTADA — NÃO FAZ PARTE DA ENTREGA FINAL.**
+> Este foi nosso primeiro rumo de projeto (análise de sentimentos sobre a
+> Petrobras), abandonado ainda no início. Está aqui apenas como registro
+> histórico. **O trabalho que vale está em [`chat/`](../chat/)** — veja o
+> [README na raiz](../README.md).
+
+---
+
 # Análise de Sentimentos em Notícias sobre a Petrobras
 
 Projeto desenvolvido para a disciplina de Busca e Mineração de Texto.
